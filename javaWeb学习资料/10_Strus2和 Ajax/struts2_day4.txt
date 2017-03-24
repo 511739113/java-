@@ -1,0 +1,263 @@
+1.拦截器：Interceptor，拦截Action，在请求Action时，会先执行拦截器，拦截器放行后，才会执行Action
+        ：用于抽取，多个Action之间的冗余的功能处理。
+  过滤器：Filter
+=============================================================================================================
+2.使用流程：
+  2.1 定制拦截器类：
+	  implements Interceptor{
+			/**
+			 * 销毁方法
+			 */
+			public void destroy() {
+				// TODO Auto-generated method stub
+				
+			}
+			/**
+			 * 初始化方法
+			 */
+			public void init() {
+				// TODO Auto-generated method stub
+				
+			}
+
+			/**
+			 * 主体逻辑
+			 * param: ai
+			 *    1.ValueStack vs=ai.getStack(); 获取值栈
+			 *    2.ai.invoke();放行，使请求继续后续的拦截器，拦截器没有了，则最后执行Action
+			 */
+			public String intercept(ActionInvocation ai) throws Exception {
+				System.out.println("interecptor1");
+				//放行：
+				if(1==1){
+					ai.invoke();//一旦放行则放回值失效。
+					return null;
+				}else{
+					return "error46";//到被拦截的Action的配置中选择错误视图
+				}
+			}
+		}
+  2.2 配置：
+		<!-- 声明拦截器 -->
+    	<interceptors>
+    		<interceptor name="inter1" class="com.c46.inter.MyInterceptor"></interceptor>
+    	</interceptors> 
+		<action name="inter46" class="com.c46.action.UserAction" method="query">
+    			<!-- 为Action引用拦截器，则拦截器会拦截此Action -->
+    			<interceptor-ref name="inter1"/>
+    			<result name="queryok">/index.jsp</result>
+    		</action>
+  2.3 放行：ai.invoke();//一旦放行则返回值失效
+      中断：不调用ai.invoke();
+	        通过返回值，选择错误视图
+  2.4 当Action被多个拦截器拦截时，拦截器的拦截顺序和引用顺序一致：
+		<action name="inter46" class="com.c46.action.UserAction" method="query">
+    		<!-- 为Action引用拦截器，则拦截器会拦截此Action -->
+    		<interceptor-ref name="inter1"/>
+    		<interceptor-ref name="inter2"/>
+    		<interceptor-ref name="inter3"/>
+    		<result name="queryok">/index.jsp</result>
+    	</action>
+		则拦截顺序：inter1==> inter2==> inter3==> Action
+		在执行链中有任何一个拦截器中断，则后续的所有的拦截器和最后的Action都不能执行。
+============================================================================================================
+3.拦截器栈：
+	<interceptors>
+		<interceptor name="inter1" class="com.c46.inter.MyInterceptor"></interceptor>
+		<interceptor name="inter2" class="com.c46.inter.MyInterceptor2"></interceptor>
+		<interceptor name="inter3" class="com.c46.inter.MyInterceptor3"></interceptor>
+		<!-- 将多个零散的拦截器，打包到一个拦截器栈中，则Action中可以拦截器栈为单位，整体引用多个拦截器 -->
+		<interceptor-stack name="interS">
+			<interceptor-ref name="inter3"></interceptor-ref>
+			<interceptor-ref name="inter1"></interceptor-ref>
+			<interceptor-ref name="inter2"></interceptor-ref>
+		</interceptor-stack>
+	</interceptors> 
+	<action name="inter46" class="com.c46.action.UserAction" method="query">
+		<!-- 以栈为单位，整体引用多个拦截器 -->
+		<interceptor-ref name="interS"/>
+		<result name="queryok">/index.jsp</result>
+	</action>
+============================================================================================================
+4.默认拦截器栈：
+  *将拦截器栈，指定为当前包中的默认拦截器栈，则，栈中的所有拦截器会自动拦截当前包中的所有未引用拦截器的Action
+  *如果某个Action已经明确引用了某个拦截器，则默认栈对其无效。
+  <default-interceptor-ref name="interS"/>
+============================================================================================================
+5.系统拦截器：
+  在继承的父包：struts-default中有一个拦截器栈：defaultStack
+              ：且被父包指定为了默认栈。
+			  : 所以默认情况下，自定义的包中的Action会默认收到defaultStack中的拦截器的拦截，进而追加系统
+			    功能。
+				但是如果，人为的为Action指定了拦截器(零散，以栈为单位，自定以默认栈)，则父包的默认栈
+				失效，会导致系统功能丢失。
+			  ：解决方案：
+			    在认为指定拦截器时，带上系统栈：defaultStack：
+					<action name="inter47" class="com.c46.action.AdminAction" method="login">
+						<interceptor-ref name="defaultStack"/>
+						<interceptor-ref name="inter1"/>
+						<result name="loginok">/index.jsp</result>
+					</action>
+					或者：
+					<interceptor-stack name="interS">
+						<interceptor-ref name="defaultStack"></interceptor-ref>
+						<interceptor-ref name="inter3"></interceptor-ref>
+						<interceptor-ref name="inter1"></interceptor-ref>
+						<interceptor-ref name="inter2"></interceptor-ref>
+					</interceptor-stack>
+=============================================================================================================
+6.拦截粒度更精细：方法拦截器
+  6.1 类的定制
+		extends MethodFilterInterceptor{
+			/**
+			 * 主体逻辑
+			 * param ：ai
+			 *    ai.getStack();
+			 *    ai.invoke();
+			 */
+			@Override
+			protected String doIntercept(ActionInvocation ai) throws Exception {
+				System.out.println("method Interceptor");
+				ai.invoke();
+				return null;
+			}
+		}
+  6.2 配置：
+		<interceptors>
+			<interceptor name="minter" class="com.c46.inter.MyMethodInterceptor">
+				<!-- 不拦截指向login方法的请求 -->
+				<param name="excludeMethods">login</param>
+				<!-- 拦截指向query和delete方法的请求 -->
+				<!-- <param name="includeMethods">query,delete</param> -->
+			</interceptor>
+		</interceptors>
+		<action name="inter46_*" class="com.c46.action.UserAction" method="{1}">
+			<interceptor-ref name="inter1"/>
+			<interceptor-ref name="minter"/>
+    		<result name="queryok">/index.jsp</result>
+    		<result name="loginok">/index.jsp</result>
+    		<result name="deleteok">/index.jsp</result>
+    	</action>
+		
+*补充：
+	关于jsp的拦截：
+  *由于jsp中不持有数据，所以jsp是不允许直接访问的。
+  *为了防止万一，将jsp放置在web-inf下。
+  
+	<!-- 中转Action -->
+	<package name="c46" extends="struts-default" namespace="/c46">
+		<action name="*" class="com.c46.action.Action46">
+			<result name="ok">/WEB-INF/{1}.jsp</result>
+		</action>
+	</package>
+	http://localhost:8989/struts2_day4/c46/index  ==>/WEB-INF/index.jsp
+	http://localhost:8989/struts2_day4/c46/emplist  ==>/WEB-INF/emplist.jsp
+	http://localhost:8989/struts2_day4/c46/update  ==>/WEB-INF/update.jsp
+============================================================================================================
+7.自定义结果类型：了解struts跳转原理。
+  7.1 定制类：
+		StrutsResultSupport{
+			/**
+			 *  <result name="xxx" type="xx">/view46/abc.jsp</result>
+			 * param:
+			 *    location46:接收跳转地址【/view46/abc.jsp】
+			 */
+			@Override
+			protected void doExecute(String location46, ActionInvocation ai)
+					throws Exception {
+				/*ActionContext ctx = ai.getInvocationContext();
+				HttpServletResponse response = (HttpServletResponse) ctx.get(ServletActionContext.HTTP_RESPONSE);*/
+				HttpServletResponse response=ServletActionContext.getResponse();
+				String appname=ServletActionContext.getServletContext().getContextPath();
+				System.out.println("path:"+(appname+location46));
+				response.sendRedirect(appname+location46);
+			}
+		}
+  7.2 配置：
+		<result-types>
+            <result-type name="c46" class="com.c46.result.MyResult"/>
+        </result-types>
+		 <action name="res" class="com.c46.action.ResultAction" method="testResult">
+        	<result name="ok" type="c46">/index.jsp</result>
+        </action>
+============================================================================================================
+8.值栈及s标签及ognl细节：
+  8.1 parameters
+   值栈的context区域中另外的一个key：
+        key             value
+	  "parameters"      Mapp
+	                     {id:["1"],name:["c48"],hobby:["ft","bt"]}
+	  http://localhost:8989/appname/xx/xx?id=1&name=c48&hobby=ft&hobby=bt
+	  
+	  
+	  jsp: ${param.xxxx}
+	       <s:property value="#parameters.id[0]"/>  输出 1
+		   <s:property value="#parameters.name[0]"/> 输出 c48
+		   <s:property value="#parameters.hobby[0]"/> 输出 ft
+		   <s:property value="#parameters.hobby[1]"/> 输出 bt
+  8.2
+    *日期：client --->  server  yyyy-MM-ddThh:mm:ss
+	      server --->  client
+		<s:date name="#session.date46" format="yyyy年MM月dd日"/>
+		<input type="text" value='<s:date name="#session.date46" format="yyyy年MM月dd日"/>'/>
+		<font color="cyan"><s:date name="#session.date46" format="yyyy年MM月dd日"/></font>    
+	*动态获取项目名：<s:url
+	  <s:url value="/index.jsp"/>
+	  <s:url value="/namespace/actionName"/>
+	  <script type="text/javascript" src='<s:url value="/js/jquery-1.8.3.min.js"/>'></script>
+	  <form action='<s:url value="/res/res"/>'></form>
+      <a href='<s:url value="/error.jsp"/>'>hh</a>
+  8.3 在struts.xml中使用ognl
+		<result name="ok" type="redirect">
+			<param name="location">/index.jsp</param>
+			<param name="name">${name}</param>
+		</result>
+		其中：【${name}】中的【name】即为ognl表达式，实在从根中获取名为name的属性值。
+
+        Action1      Action2
+          id           id46;
+
+        <result name="xx" type="redirectAction">		  
+			<param name="namespace">/xx</param>
+			<param name="actionName">xx</param>
+			<param name="id46">${ognl}</param>
+		</result>
+		
+		http://localhost:8989/appname/xxx/action2?id46=xx
+		  
+作业：
+  ems: login  queryAll  delete  save  
+     : update
+	 : 强制登录
+
+
+
+
+============================================================================================================
+ class UserAction {
+	public String query(){}
+	public String update(){}
+	public String login(){}
+ }
+ <action name="xx" class="xxx" method="query">
+	<interceptot-ref name="xx">
+ </action>
+ <action name="xx" class="xxx" method="update">
+	<interceptot-ref name="xx">
+ </action>
+ 
+ <action name="xxx_*" class="xx" method="{1}">
+	<interceptot-ref name="xx">
+ </action>
+ 
+ 
+ <s:property value="user.id"/>
+ <s:if test='user.id>1'>
+ <form action='<s:url value="/namespace/actioName"/>?name=<s:property value="ognl"/>'>
+  
+  
+  
+  
+  
+
+

@@ -1,0 +1,506 @@
+
+一、应用程序的体系结构
+	1、C/S（Client/Server 客户端服务器）
+		特点：1) client需要安装特定的软件；
+			2) 维护升级相对麻烦。
+	2、B/S（Browser/Server ）
+		特点：1) client不需要安装特定的软件，只要有浏览器即可；
+			2) 维护升级相对简单；
+			3) 通过http，可以和internet整合。
+			
+二、Tomcat
+	servlet: serverlet
+		在server上运行的 用java语言编写的 一段小程序。
+	Tomcat: 由apache免费开源组织提供的，遵循JAVAEE规范的 web/应用服务器。
+		http://www.apache.org         http://tomcat.apache.org
+		
+	1、配置
+		1) 检查环境变量 JAVA_HOME: C:\Program Files\Java\jdk1.6.0_21
+		2) 修改端口号（8080已被oracle占用）
+			tomcat根目录/conf/server.xml
+				<Connector port="8989" protocol="HTTP/1.1" 
+				   connectionTimeout="20000" 
+				   redirectPort="8443" />
+	2、启动
+		双击 tomcat根目录/bin/startup.bat
+			控制台，无异常信息；
+			信息: Starting Coyote HTTP/1.1 on http-8989；
+			信息: Server startup in 988 ms。
+	3、使用
+		http://ip:port
+		http://localhost:8989
+		http://127.0.0.1:8989
+		http://192.168.0.3:8989
+			
+三、第1个Servlet【重点】
+	动态显示系统的当前日期时间。
+	1、写代码
+		1) implements Servlet     实现接口中的所有方法
+		2) extends GenericServlet    实现抽象类中的抽象方法(无协议无关)
+		3) extends HttpServlet     和http协议相关，覆盖service方法
+			public void service(HttpServletRequest request, HttpServletResponse response)
+				throws ServletException,IOException{
+				//1 设置响应类型
+				//2 获取输出流
+				//3 使用输出流
+			}
+		注意：必须导入 servlet-api.jar
+	
+	2、编译
+		MyEclipse自动编译
+	
+	3、部署【重点】
+		把本地（开发用机）上的程序，往server（远程）上 copy 的过程。
+		1) 根据JAVAEE规范，创建目录结构
+			tomcat根目录/webapps/myweb(自定义，web应用名称)
+				|+ WEB-INF（必须有）
+					|-web.xml （必须有，一个）
+					|+classes   （可选，用于存放class文件）
+					|+lib       （可选，用于存放jar包）
+				|+ css （可选，用于存放css文件）
+				|+ images （可选，用于存放图片）
+				|+ js （可选，用于存放js文件）
+				|+ html (存放，html文件)
+				|+ jsp (存放，jsp文件)
+				|- xxx.html
+				|- xxx.jsp
+			备注：web.xml，从ROOT/WEB-INF/中copy，保留第1行和成对的<web-app>标签。
+			
+		2) 把本地程序(含包结构) 往 server 的指定目录(WEB-INF/classes)放置
+	
+	4、配置【重点】
+		把不能直接运行的类，通过配置 让其可以直接访问运行。
+		(配置 myweb/WEB-INF/web.xml)
+		<!-- 配置servlet的信息 -->
+		<servlet>
+			<servlet-name>别名</servlet-name>     起别名，同一web.xml 唯一
+			<servlet-class>包名.类名</servlet-class>    指定servlet的全类名
+		</servlet>
+		
+		<!-- 配置servlet的映射信息 -->
+		<servlet-mapping>
+			<servlet-name>别名</servlet-name>     别名，必须同<servlet>标签中的一致
+			<url-pattern>/xxx</url-pattern>    请求servlet时的地址格式，必须/开头
+		</servlet-mapping>
+	
+	5、运行
+		http://ip:port/web应用名/url-pattern
+		
+		
+	解决响应内容中的中文乱码：【重点】
+		response.setCharacterEncoding("GBK");
+		
+四、常见问题
+	1、404 （请求资源无效）
+		解决方案：1) 检查URL地址，特别是 web应用名和url-pattern
+			2) 检查部署是否正确（带包结构的class、指定目录结构）
+			3) 检查启动控制台是否有异常
+	2、405
+		servlet源代码中的service方法声明错误！
+	3、500
+		解决方法：1) 检查servlet源代码是否有异常；
+			2) <servlet-class>配置错误（带包结构的class、配置文件中是 包名.类名）
+	4、运行后，提示下载
+		//1 设置响应类型
+		response.setContentType("text/html");  //检查参数是否正确
+		
+五、请求servlet的3种方式【重点】
+	1、地址栏请求
+		http://ip:port/web应用名/url-pattern
+		
+	2、超链接请求
+		1) 在server上，创建html页面，并且定义超链接标签
+		2) 定义a标签的href属性
+			<a href="/web应用名/url-pattern"
+		3) 运行html页面
+			http://ip:port/web应用名/子目录/xxx.html
+
+	3、表单请求
+		1) 在server上，创建html页面，并且定义form标签
+		2) 定义form标签的action属性
+			<form action="/web应用名/url-pattern"
+		3) 运行html页面
+		
+		获取client的请求数据：【重点】
+			String str = request.getParameter("name属性值/get方式的参数名");
+		解决请求(post方式)内容中的中文乱码：【重点】
+			request.setCharacterEncoding("GBK");
+		
+====================== Day2 =============================
+
+一、使用MyEclipse简化开发：
+1、配置tomcat
+	工具栏服务器图标右侧黑箭头-->configure servers-->展开servers-->展开tomcat
+	-->点击tomcat6.X-->选择tomcat的安装根目录-->enabled-->OK
+2、设置工作空间的字符编码集
+	windows-->preference-->展开General-->点击workspaces-->右侧选择UTF-8，OK。
+3、设置java项目的字符编码集
+	项目右键属性-->Resource-->右侧选择正确的字符集，OK。
+4、创建WebProject
+	Web Root Folder: WebRoot（本地web应用名）
+	Context root URL: 同项目名（远程web应用名）
+	
+	查看项目的远程web应用名：项目右键属性-->展开MyEclipse-->点击web，右侧。
+
+二、servlet的生命周期
+	1、从请求发出，到响应回client的完整过程
+		1) 写完URL，回车，发出请求
+		2) 解析URL地址，获取/web应用名，确定对应的web.xml
+		3) 解析URL地址，获取url-pattern,确定<servlet-mapping>中的<url-pattern>
+		4) 根据<servlet-mapping>中的<url-pattern>，确定<servlet-name>
+		5) 根据<servlet-mapping>中的<servlet-name>，确定<servlet>中的<servlet-name>
+		6) 根据<servlet>中的<servlet-name>，确定<servlet-class>
+		7) 在server内存中，检查是否存在该servlet类的实例对象
+			不存在，基于反射，创建该类的对象
+			存在，直接使用已存在的对象
+		8) 自动调用生命周期方法service，对用户的请求进行处理，并且把响应结果返回client。
+	2、生命周期阶段
+		servlet的生命周期由 tomcat(web容器/servlet容器) 进行管理
+				调用的方法     调用时间     调用次数
+		实例化   构造方法	  第1次请求        1
+		初始化   init	      实例化后接着进行 1
+		服务     service      client有请求即调用  N次
+		销毁     destroy      停止server		1
+
+		特殊情况：在server启动时，进行实例化和初始化。
+			<servlet>
+				<servlet-name>
+				<servlet-class>
+				<load-on-startup>1</load-on-startup>
+			</servlet>
+			
+	3、多用户并发访问
+		在server启动过程中，1个servlet类只有1个对象存在，而server必须支持多用户并发访问，
+		当servlet类中有成员变量并且需要修改其值时，必须保证该临界资源的数据准确性：
+		1） 使用synchronized同步（影响性能）
+		2）尽量避免在servlet中定义成员变量
+	4、ServletContext 和 ServletConfig
+		1）ServletContext接口
+			是web.xml在内存中的体现。
+			和web应用 一一对应。
+			
+			应用：获取全局初始化参数
+			a、配置全局参数 (web.xml中，所有<servlet>标签以外)
+				<context-param>
+					<param-name>age</param-name>
+					<param-value>18</param-value>
+				</context-param>
+			b、获取全局参数
+				//获取ServletContext对象
+				ServletContext ctx = super.getServletContext();
+				//获取全局参数
+				String strAge = ctx.getInitParameter("age");
+			
+		2）ServletConfig接口
+			代表servlet的配置信息。
+			和servlet 一一对应。
+
+			应用：获取局部初始化参数
+			a、配置局部参数 (web.xml中，在<servlet>标签以内)
+			<servlet>
+				....
+				<init-param>
+					<param-name>name</param-name>
+					<param-value>tom</param-value>
+				</init-param>
+			</servlet>
+			b、获取局部参数
+			
+三、servlet的通讯【重点】
+	1、forward (请求转发)【重点】
+		应用场景：业务逻辑 和 显示逻辑 区分开。
+		
+		* 步骤：
+		1) 定义业务逻辑Servlet（以Action结尾，如LoginAction）
+			//1获取client的数据
+			//2调用业务类的方法，实现“”功能
+			//3根据结果，跳转
+			//获取请求转发对象
+			RequestDispatcher rd = request.getRequestDispatcher("/url-pattern");//转网页路径("/子目录/xx.html")
+			//请求转发
+			rd.forward(request, response);
+		2) 定义显示逻辑Servlet（以View结尾，如OkView）
+			//1设置响应类型
+			//2获取输出流
+			//3使用输出流
+			
+	
+		* 业务Servlet 往 显示Servlet 传递数据：
+			1)String xxx = request.getParameter("xxx");
+			2) 往request中设置命名属性(跳转之前)
+				request.setAttribute("name",obj);
+				request.setAttribute("age",obj2);
+			   显示Servlet中，获取request中的命名属性
+				Object obj = request.getAttribute("str");
+		* forward的特点：
+			1) server内部的跳转
+			2) 共用同一个request对象
+			3) 地址栏不变
+			4) 响应的永久跳转
+			5) 只能转向同一web应用中的资源
+		
+====================== Day3 =============================
+
+
+一、servlet的通讯【重点】（接上）
+	1、forward（请求转发）【重点】
+		特点：
+			1) server内部的跳转
+			2) 共用同一个request对象
+			3) 地址栏不变
+			4) 响应的永久转向
+			5) 只能转向同一web应用中的资源
+	2、include（包含）
+		应用场景：用于 公共页面的 复用。
+		
+		步骤：
+		1) 定义公共页面 LogoView
+			out.println("<img src='/web应用名/子目录/xx.jpg'/>");
+		2) 使用include包含公共页面
+			// 获取请求转/分发对象
+			RequestDispatcher rd = request.getRequestDispatcher("/url-pattern");
+			// 包含
+			rd.include(request, response);
+	
+二、重定向 sendRedirect【重点】
+	是web中的一种跳转方式。
+	
+	response.sendRedirect("/web应用名/url-pattern");//页面路径： /web应用名/子目录/xx.html
+	
+	* 特点：1) client的跳转
+		2) 不共用同一个request对象
+		3) 地址栏改变
+		4) 响应的永久转向
+		5) 可以转向站外的资源
+	
+	* 跳转方式的选择：
+		ActionServlet 向 ViewServlet传数据时，必须使用forward；
+		除此以外，sendRedirect优先。
+	
+	* 功能整合：
+		登录功能，成功-->查所有  loginAction-->queryAllAction-->queryAllView
+				失败-->登录页
+		注册用户功能，成功-->登录页
+				失败-->注册页
+		添加联系人，成功-->查所有   AddPersonAction-->queryAllAction
+				失败-->添加页
+
+====================== Day4 =============================
+
+一、Cookie
+	是server 往 client 写的小段文本信息，由2部分构成：name和value。
+	
+	1、server往client写cookie
+		Cookie c = new Cookie("name","tom");
+		Cookie c2 = new Cookie("pass","111");
+		c.setMaxAge(n);   //设置n秒后失效
+			n>0         n秒后失效
+			n==0        删除当前cookie对象
+			n<0         cookie的失效时间和浏览器绑定，关IE，cookie失效
+		response.addCookie(c);
+		response.addCookie(c2);
+	
+	2、client读cookie
+		Cookie[] cookies = request.getCookies(); //没有cookie，返回null
+
+二、Session【重点】
+	会话，是同1个client和server建立起连接后的 多次请求/响应过程。
+
+	HttpSession session = request.getSession(boolean);
+		true: 如果client不存在session，则创建1个；已存在，则直接使用。
+		false: 如果client不存在session，则返回null；已存在，则直接使用。
+
+	1、作用范围（作用域对象）
+		开始：client第1次请求，并且getSession(true)
+		结束：超时、手动销毁-invalidate方法
+		使用： session.setAttribute("str",obj);
+				obj = session.getAttribute("str");
+				session.removeAttribute("str");
+	2、特点
+		1) session 的作用范围 比 request 大；
+		2) session 和 client浏览器(chrome/IE/FF...) 一一对应。
+	3、应用【应用】
+		1) 获取用户的登录信息
+			<步骤1>：LoginAction的成功分支中，往session中设置命名属性
+			<步骤2>：XxxView中(LogoView)，获取session的命名属性，并且输出
+			
+		2) 强制登录
+			在XxxAction中，最上方添加用户的登录检查
+				HttpSession session = request.getSession(true);
+				Object obj = session.getAttribute("LoginedUser");
+				if (obj == null) {//没登录
+					response.sendRedirect("/servlet_day4/login.html");
+					return;
+				}
+			
+		3) 安全退出
+			LogoutAction.java    安全退出的功能
+				// 删除session中的命名属性
+				// 销毁当前session对象
+				// 转登录
+
+	4、修改session的失效时间
+		1) session.setMaxInActiveInterval(n);  //n秒
+		2) 配置web.xml，单位-分钟
+			<session-config>
+				<session-timeout>10</session-timeout>
+			</session-config>
+	5、session的原理
+		session的实现 是基于cookie进行。
+		第1次请求，server接到请求，检查当前client是否有session，如果没有，则创建其对应的session并且分配
+			唯一的sessionId(32位的16进制数)，处理完该client的请求后，把结果响应回client的同时，把sessionID
+			以Cookie(name-JSESSIONID，value-32位的16进制数，MaxAge<0)的形式，写次本地。
+		其它次请求，发送请求时 携带着 读取到的本地cookie信息（JSESSIONID），server接到请求后，根据读到的
+			sessionid，在server内存中匹配ID相同的session，从而确定 该client的多次请求/响应。
+
+		//检查本地cookie是否禁用，如果禁用，则在原URL后添加 url;jsessionid=xxxxxx
+		如果cookie被禁止，javaweb中，使用response.encodeURL(path);
+
+三、request、session、ServletContext
+	1、request
+		开始：写完URL地址，回车
+		结束：响应结果回到client
+		使用： request.setAttribute("str", obj);
+				obj = request.getAttribute("str");
+				request.removeAttribute("str");
+		使用场景：同1个请求的 资源需要共享数据。
+			如，ActionServlet 给 ViewServlet 传数据。
+	2、session
+		开始：client第1次请求，并且getSession(true)
+		结束：超时、手动销毁-invalidate方法
+		使用： session.setAttribute("str",obj);
+				obj = session.getAttribute("str");
+				session.removeAttribute("str");
+		使用场景：同1个client的 多次请求 需要共享数据时。
+	3、ServletContext
+		开始：server启动时
+		结束：server停止时
+		使用：
+			ServletContext context = super.getServletContext();
+			context.setAttribute("str",obj);
+			obj = context.getAttribute("str");
+			context.removeAttribute("str");
+		使用场景：不同的client 需要共享数据时。
+		
+小结：
+	reqeust 最小     同1个请求 需要共享数据时。
+	session 较大     同1个client 需要共享数据时。
+	context 最大     不同client 需要共享数据时。
+	
+思考：以下数据，最恰当的作用范围应该是什么？
+	登录时的错误提示信息        request
+	购物车						session
+	web聊天室的公聊聊天内容		context
+	用户权限信息				session
+	用户的登录信息				session
+	web聊天室的在线用户列表		context
+		
+====================== Day5 =============================
+
+一、过滤器
+	Filter，是JAVAEE中的一类组件，能对用户的request/response 进行统一处理，并且根据处理结果，
+		决定 把reqeust/response 继续往后传递。
+		
+	1、自定义过滤器
+		1） 写代码
+			implements Filter 
+			// 过滤处理
+			public void doFilter(ServletRequest request, ServletResponse response,
+			FilterChain chain) throws IOException, ServletException {
+				// 功能语句
+				....
+				
+				// 把reqeust/response 继续往后传递
+				chain.doFilter(request, response);
+				
+				// .....
+			}
+		2） 配置 web.xml
+			<filter>
+				<filter-name>...</filter-name>
+				<filter-class>包名.类名</filter-class>
+			</filter>
+			<filter-mapping>
+				<filter-name>...</filter-name>
+				<!-- 需要过滤处理的资源url格式，支持通配符 -->
+				<!-- /* 该应用下的所有资源 -->
+				<!-- /bank/* 该应用根目录中bank子目录下的所有资源 -->
+				<url-pattern>/*</url-pattern>
+				<url-pattern>/bank/*</url-pattern>
+				<url-pattern>/user/*</url-pattern>
+			</filter-mapping>
+	2、应用【重点】
+		1) 设置字符编码集
+			/*
+		2) 强制登录
+			配置：需要过滤处理的资源URL格式
+			所有和业务表操作相关的功能都需要过滤，加以区分：
+				html/jsp页面：   /WebRoot/module/add.html      /servlet_day4/module/add.html
+				servlet类：      <url-pattern>/bank/queryAll</url-pattern>
+			<filter-mapping>
+				...
+				<url-patter>/bank/*</url-pattern>
+				<url-patter>/module/*</url-pattern>
+			<filter-mapping>
+			
+			
+*/
+
+
+二、连接池
+	连接池，用于存储和管理 数据库的连接对象。
+	好处：提高性能。
+	
+	0、准备
+		ojdbc5.jar 放到 tomcat根目录/lib 中。
+	1、配置
+		tomcat根目录/conf/context.xml
+		
+		<Resource
+			driverClassName="oracle.jdbc.OracleDriver"
+			url="jdbc:oracle:thin:@localhost:1521:xe"
+			username="hr"
+			password="hr"
+			
+			type="javax.sql.DataSource"     类型
+			name="jdbc/yyl"                 名称
+			auth="Container"                 由容器管理
+			
+			initialSize="2"                  初始连接数量
+			maxActive="10"                   最大连接数量
+			maxWait="1000"                   最大等待时间（单位：毫秒）
+			maxIdle="2"                      最大空闲数量（超出时，会断开和DB的连接）
+		/>
+		
+	2、使用
+		JNDI(Java Naming and Directory Interface) java命名和目录接口
+		用于 根据给定的名称或目录 查询资源。
+		
+		// 获取上下文(类似“我的电脑”)
+		Context ctx = new InitialContext();
+		// 根据目录结构和名称，获取连接池对象
+		javax.sql.DataSource ds = (DataSource)ctx.lookup("java:comp/env/jdbc/yyl");
+		// 从连接池中获取连接
+		Connection conn = ds.getConnection();
+
+	3、注意
+		测试连接池中获取连接，必须在tomcat中测试！！不能使用main测试。
+	
+三、监听器【了解】
+	Listener，是JavaEE中的一类组件，用于监控 作用域对象和命名属性 的变化。
+	
+	1、写代码
+		implements ServletRequestListener    用于监控 request作用域对象 的创建和销毁
+		implements HttpSessionListener    用于监控 session作用域对象 的创建和销毁
+		implements ServletContextListener    用于监控 context作用域对象 的创建和销毁
+		
+		implements ServletRequestAttributeListener    用于监控 request命名属性 的增、删、改
+		implements HttpSessionAttributeListener    用于监控 session命名属性 的增、删、改
+		implements ServletContextAttributeListener    用于监控 context命名属性 的增、删、改
+		
+	2、配置 web.xml
+		<listener>
+			<listener-class>day5.MySessionListener</listener-class>
+		</listener>
+
+

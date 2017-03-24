@@ -1,0 +1,70 @@
+Day1: 
+1、脚本元素
+	<%= %>  表达式脚本，计算并输出
+	<%! %>  声明脚本，声明变量或方法（不常用）
+	<% %>   普通脚本，写普通JAVA逻辑控制语句
+2、指令元素
+	<%@ %>
+	<%@ page pageEncoding="" contentType="" import="" errorPage="/error.jsp" session="true" %>
+		error.jsp  <%@ page isErrorPage="true" %>
+	<%@ include file="url"%>
+		特点：静态包含、源代码包含、编译前包含
+		注意：不允许存在同名局部变量。
+	<%@ taglib uri="标签库配置文件的uri" prefix="前缀" %>
+3、动作元素
+	<jsp:include page="url"/>
+		特点：动态包含、结果包含、编译后包含
+	<jsp:forward page="url"/>    请求转发
+	
+	JSP指令和动作中的资源路径： /url-pattern 或 /子目录/xxx.jsp
+	
+4、jsp的执行过程
+	翻译： .jsp --> .java
+		编译规则： html   -->  service方法中 out.write()
+		           <%= %> -->  service方法中 out.print()
+				   <%! %> -->  servlet类的 实例变量和方法
+				   <% %>  -->  service方法中 普通语句
+	编译： .java --> .class
+	执行： .class
+	
+5、9个隐含对象
+	只能在JSP的 <%= %> 和 <% %> 中使用。
+	4个作用域对象： pageContext request session application
+	2个响应相关： response out
+	2个凑数： config page
+	1个特殊： exception    只能在<%@ page isErrorPage="true" %>的页面中使用。
+	
+Day2： JSP页面的无脚本开发
+1、EL
+	${} 计算表达式的值，并且输出。  <%@ page isELIgnored="false" %>
+	
+	基本运算   empty 
+	获取client数据   ${param.属性名}
+	【重点】获取命名属性     ${requestScope.命名属性名}
+	                         ${命名属性名}
+							 ${requestScope.命名属性名.对象属性名}
+		EL中的作用域对象： pageScope requestScope sessionScope applicationScope
+	【重点】动态获取web应用名    ${pageContext.request.contextPath }
+		EL中pageContext：  在EL中可以使用JSP的9个隐含对象（JSP的9个隐含对象只能在<%=%><%%>中使用，不能用在EL）。
+		JSP中pageContext： JSP中的页面作用域对象
+		pageScope： EL中的页面作用域对象
+	获取cookie的值   ${cookie.名称}   ${cookie.名称.value}
+	获取命名属性中数组或集合元素  
+	
+2、JSTL
+	<%@ tablib uri="" prefix=""%>
+	
+	<c:if test="判断条件表达式">xxx</c:if>
+	<c:forEach items="${requestScope.myList}" var="acc" varStatus="s" >
+		${acc.accountName} ${s.count}
+	</c:forEach>
+	
+	<fmt:formatDate value="${acc.openDate}" pattern="yyyy-MM-dd"/>
+	
+Day3:
+MVC        Model II
+
+
+
+	
+

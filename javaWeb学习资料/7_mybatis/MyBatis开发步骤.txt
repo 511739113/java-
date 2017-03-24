@@ -1,0 +1,17 @@
+MyBatis项目开发的步骤：
+	0、环境搭建
+		导入
+		配置运行环境
+	1、sql包      建表等SQL语句
+	2、util包     MyBatisUtil.java
+					static{}  获取builder/factory
+					public static SqlSession getSession(){} 获取session
+					public static void close(SqlSession session){}  释放资源
+	3、entity包		根据表结构定义实体类
+	4、dao包      定义接口
+	5、dao.impl包   使用Mapper映射文件，实现接口
+			注意：每实现1个方法，测试1个方法。
+	6、在mybatis-config.xml 中注册Mapper映射文件。
+	7、service包   先定义接口，后实现类
+			注意：每实现1个方法，测试1个方法。
+	

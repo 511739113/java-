@@ -1,0 +1,24 @@
+重点掌握：
+	1.常用的标签，元素，属性含义看懂.
+	*2.超链接   img标签	table   form表单中所有元素
+	3.css掌握css语法(选择器(html，class))
+	4.掌握div基本特点
+	
+zen coding; emmet
+	1.在notepad++添加插件：
+		将插件内容复制到notepadd++/plugins
+	2.快捷键：
+		ctrl+E
+
+	书写格式：
+		父标签>子标签>子子标签
+
+		标签*5	//5个标签
+		
+前端开发工具：
+	webstorm
+	hbuilder----HTML5
+	SublimeText
+	DreamWeaver
+	
+	

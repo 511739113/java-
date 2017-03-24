@@ -1,0 +1,138 @@
+1.hibernate注解(Annotation)：基于注解完成ORM，简化映射过程。(替换了映射文件)
+  创建项目时，使用javaEE6.
+  * @Entity //告知hibernate 此实体是一个参与了orm的实体
+	@Table(name="t_user46")//告知hibernate，该实体映射了t_user46
+	public class User {
+	  ....
+	}
+  * @Id //告知hibernate此属性是映射主键的属性 ,此注解为必需的。
+	@Column(name="id") //告知hibernate此属性映射哪一列
+	private Integer id;
+    @Column(name="age") //告知hibernate此属性映射哪一列
+	private Integer age;
+  * //@Column(name="birth")
+	//@Temporal(TemporalType.DATE)//日期格式 2015-11-16
+	//@Temporal(TemporalType.TIME)//时间格式 10:21:46
+	@Temporal(TemporalType.TIMESTAMP)//日期和时间：2015-11-16 10:21:46  默认的时间存储规格。
+	private Date birth;
+  * //主键维护策略
+    @Id
+	@Column(name="xxx")
+	@GenericGenerator(name="inc46",strategy="increment")
+	@GeneratedValue(generator="inc46")
+	private Integer id;
+  * 为了使得注解不冲突，使用了javaEE6，但需要关闭javaEE6的bean-validator
+    <!-- 关闭javeEE6 的bean-validate -->
+	<property name="javax.persistence.validation.mode">none</property>
+=========================================================================================== 
+2.hibernate关联关系映射。
+ *关联关系：有，从属。
+ *种类：person    passport
+         1     ：     1
+		user      order
+		 1     ：     *
+		student   course
+		 *     ：     *
+
+ *关联关系的体现：
+    1>数据表中：外键
+
+    2>实体中：关系属性
+	    class Person{
+		  id
+		  name
+		  age
+		  Passport pass;
+		}
+		class Passport{
+			id
+			expire
+			note
+			Person person;
+		}
+  *方向：单向  双向  体现在实体中。
+==========================================================================================
+3.【1:1】关联关系的映射
+  *搭建关联关系
+    1>在表中
+	2>在实体中
+  *映射关联关系
+    1>主表方：
+		//关系属性
+		//mappedBy="person46" 当前方在对方中的关系属性是名为person46的属性。
+		@OneToOne(mappedBy="person46")
+		private Passport pass46;
+    2>从表方：
+		@OneToOne
+		@JoinColumn(name="person_id") //告知hibernate关系中的外键，使得hibernate可以进行相应的表连接查询
+		private Person person46;
+  *使用，测试：传递性的持久化
+    *查询
+	*增加
+	*删除
+	*更新
+  *注意：级联级别，只对【增删改】有效。
+         查询不受限制
+
+*提前：
+    hibernate高级特性：【脏数据检测：dirty check】
+	*在一个事务中，hibernate加载过的数据，会在session中留取备份，且会交给用户另一份。
+	 在事务提交时，会对用户的操作的数据，进行检测，检测用户是否改动了数据。
+	 如果发现用户改动了数据，则数据持有的数据为【脏数据】，则会将【脏数据】的数据状态
+	 同步到数据库。
+	*如上，则：
+	   tx
+	   User user=(User)session.get(User.class,1);
+	   user.setName("new_name");
+	   //session.update(user);
+	   tx.commit();
+	细节1：
+		在1:1 级联更新时：如果没有设置save_update. 为什么依然可以级联更新。
+		 解释：  A    B
+		   tx
+		   A a=(A)session.get(A);  //  A  B
+		   a.setXX(xxx);
+		   ...
+		   a.getB().setXX(xxx)
+		   ...
+		   session.update(a);
+		   //session.update(b);
+		   tx.commit();
+		*注意：session.update（）方法的用处：
+		   Action                    Service     DAO
+		 User user=new User()
+									   user
+									   tx
+												  user
+												  session.update(user);		  
+									   commit
+	
+    细节2：
+	    在1:1 单独删除从表时：查询从表；在主表方解除关系；删除从表。
+		A save_update        B
+		
+		tx
+		B b=(B)session.get(B);// A{id,name,age,b}   B
+		session.delete(b);//此时b被标记为【deleted】状态
+		tx.commit();
+		
+		
+		
+								   
+	   
+==========================================================================================
+作业：
+  Company  Address
+    1         1
+  Company{
+     id
+	 name
+	 amount
+	 Address addr
+  }
+  Address{
+	id
+	city
+	street
+	Company com
+  }

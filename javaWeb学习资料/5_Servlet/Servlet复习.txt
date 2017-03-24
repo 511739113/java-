@@ -1,0 +1,168 @@
+Day1：
+1、c/s b/s
+2、tomcat 遵循JAVAEE规范
+3、第1个servlet
+	tomcat根目录/webapps/web应用名
+							|+ WEB-INF 必须
+								|- web.xml  必须，有且只有1个
+								|+ classes   存放带结构的class文件
+								|+ lib       存放ojdbc5.jar
+							|+images
+							|+css
+							|+module
+								|- xx.html
+								|- xx.jsp
+							|- xx.html
+							|- xx.jsp
+
+	配置：
+		<servlet>
+			<servlet-name>别名
+			<servlet-class>包名.类名
+		</servlet>
+		<servlet-mapping>
+			<servlet-name>别名
+			<url-pattern>/请求servlet的格式
+		</servlet-mapping>
+4、请求servlet的3种方式
+	http://ip:port/web应用名/url-pattern?name=tom&pass=111
+	<a href="/web应用名/url-pattern?id=xx"
+	<form action="/web应用名/url-pattern" method="get|post"
+	
+	//获取client的数据【重点】
+	String str = request.getParamenter("name属性值|get的参数名");
+	
+	//乱码问题【重点】
+	response.setCharacterEncoding("UTF-8");//响应内容中的乱码
+	request.setCharacterEncoding("UTF-8");//请求内容中的乱码(post方式)
+	
+Day2:
+1、生命周期
+	描述生命周期。
+	tomcat管理
+	分4个阶段，分别是什么？调什么方法？什么时候调用？调几次？
+	<load-on-startup>1</load-on-startup>
+2、ServletContext 和 ServletConfig 的区别
+	ServletContext：代表web.xml；和web应用一一对应；
+	ServletConfig：代表servlet的配置信息；和servlet一一对应。
+3、servlet通讯【重点】
+	1) include  包含
+		场景：公共页面的 复用。
+		
+	2) forward 请求转发【重点】
+		场景：业务逻辑 和 显示逻辑 区分开。
+		request.getRequestDispatcher("/url-patter").forward(request, response);
+		
+		特点：1 2 共享request对象 3 4 5 
+Day3: 
+1、sendRedirect 重定向【重点】
+	response.sendRedirect("/web应用名/url-pattern");
+	
+	特点：1 2 不共享request对象 3 4 5 
+	
+	** 跳转方式的选择：
+		ActionServlet 给 ViewServlet 传递数据时，必须使用forward；
+		除此以外，sendRedirect 优先。
+	
+Day4：
+1、Cookie
+	server 往 client 写的小段文本，由2部分构成：name 和 value。
+	缺点：client存储信息、不安全、可以禁/删、小段文本、不支持中文
+	使用：往client写cookie
+			response.addCookie(c);
+		从client读cookie
+			Cookie[] cookies = request.getCookies();
+	
+2、Session【重点】
+	会话，同1个client和server建议起连接后的 多次请求响应过程。
+	
+	开始：第1次请求，getSession(true)
+	结束：超时、手动销毁 invalidate
+	
+	应用：【重点】
+		获取用户的登录信息
+		强制登录
+		安全退出
+3、request、session、ServletContext 作用域对象
+	request 最小 回车 响应回到client                       同1个请求 共享数据
+	session 较大 第1次请求getSession(true) 超时、手动销毁  同1个client 共享数据
+	context  最大 server启动 server关闭                    不同的client 共享数据
+	
+Day5：
+1、Filter
+	应用：【重点】
+		设置中文字符集
+		强制登录
+			准备：把需要过滤的功能，放到指定目录结构中
+					servlet：<url-pattern>/bank/xxx</url-pattern>
+					页面：   移到新文件夹中module
+			配置：
+				<filter-mapping>
+					<filter-name>别名
+					<url-pattern>/bank/*
+					<url-pattern>/module/*
+				</filter-mapping>
+2、连接池
+	存储和管理连接对象。
+	提高性能。
+3、监听器【了解】
+
+
+==================================================
+
+1、client向server 发送数据
+	http://ip:port/web应用名/url-pattern?id=xx
+	<a href="/web应用名/url-pattern?id=xx"
+	<form action="/web应用名/url-pattern?id=xx"
+	response.sendRedirect("/web应用名/url-pattern?id=xx")
+	
+	以上只能传字符串。
+	
+2、server 给 server 传数据(同1个web应用中)
+	request.setAttribute("str", obj);
+	session.setAttribute("str", obj);
+	context.setAttribute("str", obj);
+
+3、在servlet中，获取数据的方式
+	// 获取client的数据
+	String str = request.getParameter("");  //只能是字符串
+	
+	// 获取命名属性
+	Object obj = request.getAttribute("str");
+	
+4、解决乱码
+	1) 响应内容中的乱码
+	response.setCharacterEncoding("UTF-8")
+	2) 请求数据中的乱码(post方式)
+	request.setCharacterEncoding("UTF-8");
+	3) 过滤器
+		以上1+2 
+	4) HTML页面中的乱码
+	<meta http-equiv="content-type" content="text/html;charset=UTF-8" />
+	5) 
+	6) 
+	
+5、web中的跳转方式
+	forward 请求转发
+		特点：1 2 共享request对象 3 4 5 
+	sendRedirect 重定向
+		特点：1 2 不共享request对象 3 4 5 
+	** 跳转方式的选择：
+		ActionServlet 给 ViewServlet 传递数据时，必须使用forward；
+		除此以外，sendRedirect 优先。
+	
+6、web中的路径
+	1) /url-pattern   服务器用的路径
+		forward、include
+		
+	2) /web应用名/url-pattern   client用的路径
+		sendRedirect
+		<a href
+		<form action
+		<img src
+		所有HTML标签中的路径
+
+	
+	
+	
+	

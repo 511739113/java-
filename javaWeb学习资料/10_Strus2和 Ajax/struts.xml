@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE struts PUBLIC
+	"-//Apache Software Foundation//DTD Struts Configuration 2.3//EN"
+	"http://struts.apache.org/dtds/struts-2.3.dtd">
+<!-- dtd:document type definition
+        :约束文档中可出现的标签，标签属性，标签的层级，标签的出现顺序
+ -->
+<struts>
+ 	<!-- 配置Action
+ 		 package:包：用于承载对于Action的配置信息。
+ 		                           ：配置信息以包为单位。
+ 		                           ：用于管理配置信息，使配置信息，更加清晰。
+ 		 name:包名  任意 必需属性
+ 		 extends：继承
+ 		 struts-default:是struts的系统包，包中定制了大量系统的功能。
+ 		 namespace:包内部的Action的访问前缀 
+ 		 技巧：将不同模块的Action配置在不同的package中
+ 		        ：不同的package有不同的namespace
+ (result-types?, interceptors?, default-interceptor-ref?, default-action-ref?, 
+  default-class-ref?, global-results?, global-exception-mappings?, action*)
+ 	 -->
+ 	 <!-- 通过设置常量更改struts2默认配置 -->
+ 	<constant name="struts.multipart.maxSize" value="209715200"></constant>
+ 	<package name="up" extends="struts-default" namespace="/up">
+ 		<action name="up46" class="com.c46.action.FileUpLoadAction"  method="upload46">
+ 			<result name="upok">/index.jsp</result>
+ 			<result name="error">/fileup.jsp</result>
+ 		</action>
+ 	</package>
+ 	<package name="down" extends="struts-default" namespace="/down">
+ 		<action name="down46" class="com.c46.action.DownLoadAction"  method="download46">
+ 			<result name="downok" type="stream">
+ 				<!-- 下载文件的content-type -->
+ 				<param name="contentType">text/plain</param>
+ 				<!-- 指向目标资源的输入流的名称 -->
+			    <param name="inputName">input46</param>
+			    <!-- 目标资源 传送到客户端后， 打开方式：inline：在线打开      attachment：以附件的形式保存 -->
+			    <param name="contentDisposition">attachment;filename="c46.txt"</param>
+			    <param name="bufferSize">512</param>
+ 			</result>
+ 			<result name="error">/index.jsp</result>
+ 		</action>
+ 	</package>
+ 	<!-- 验证码 -->
+ 	<package name="security" extends="struts-default" namespace="/sec">
+ 		<!-- 生成验证码的Action -->
+ 		<action name="sec46" class="com.c46.action.SecurityAction" method="security46">
+ 			<result name="ok" type="stream">
+ 				<!-- 下载文件的content-type -->
+ 				<param name="contentType">image/jpeg</param>
+ 				<!-- 指向目标资源的输入流的名称 -->
+			    <param name="inputName">input</param>
+			    <!-- 目标资源 传送到客户端后， 打开方式：inline：在线打开      attachment：以附件的形式保存 -->
+			    <param name="contentDisposition">inline</param>
+			    <param name="bufferSize">512</param>
+ 			</result>
+ 		</action>
+ 		<!-- 登录 -->
+ 		<action name="login" class="com.c46.action.LoginSecurityAction" method="login">
+ 			<result name="loginok">/index.jsp</result>
+ 			<result name="error" type="redirect">/login_security.jsp</result>
+ 		</action>
+ 	</package>
+</struts>

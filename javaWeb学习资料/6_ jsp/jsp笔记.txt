@@ -1,0 +1,406 @@
+JSP(Java Server Pages): 用java编写的，运行在server上的，动态网页。
+	可以获取client的请求，处理请求，处理完后把结果响应回client。
+	JSP 是 SERVLET 发展中的一个升级版本。
+
+一、基本语法
+	1、后缀 .jsp
+	2、存放位置： WebRoot下或其子目录下（WEB-INF除外）
+	3、源代码内容： 在HTML的内容中，使用 特殊的元素 嵌入部分JAVA代码
+	4、运行： 部署完成后，直接运行（不需要配置），并且源代码修改，不需要重启server
+		http://ip:port/web应用名/子目录/xxx.jsp
+
+二、脚本元素
+	1、表达式脚本
+		语法：<%=java的表达式 %>
+		作用：计算表达式的值，并且输出。
+	2、声明脚本
+		语法：<%! %>
+		作用：声明变量、方法。
+	3、普通脚本
+		语法：<% %>
+		作用：用于定义普通的JAVA语句，通常用于写逻辑控制语句。
+	注意：以上脚本，不允许嵌套！
+	
+三、JSP的执行过程
+	1、翻译   .jsp  -->   .java
+		翻译规则：
+			HTML   --> service()中的out.write()
+			<%= %> --> service()中的out.print()
+			<%! %> --> servlet类的实例变量和方法
+			<% %>  --> service()中的普通语句
+	2、编译   .java -->   .class
+	3、执行   .class
+	
+	思考：JSP在运行时，第1次慢，以后快，原因：
+		第1次，翻译、编译、执行
+		以后，执行
+
+四、指令元素
+	<%@ 指令名称 属性名="值" 属性2="值2" %>
+	1、page指令 （页面指令）
+		作用：定义对整个JSP页面都有效的特性。
+		属性如下：
+		 1) pageEncoding="UTF-8"    设置字符集  【重点】
+		 2) contentType=""           JSP页面内容类型
+			   contentType="text/html"
+			   contentType="text/html;charset=UTF-8"
+		 3) import=""     导包或类
+		     <%@ page import="java.util.*" %>
+		     <%@ page import="java.util.Date" %>
+		     <%@ page import="java.util.Date,java.io.*" %>
+		     <%@ page import="java.util.Date" %>
+		     <%@ page import="java.io.I" %>
+		 4) isErrorPage="true|false(默认)"     定义该JSP是否是异常处理页面 【重点】
+		 5) errorPage="url"     指定当前JSP页面出现异常后，所转向的公共处理页面【重点】
+		 6) session="true(默认)|false"   指定当前JSP中，是否能直接获取session对象
+				servlet中获取session:    懒汉式
+				jsp中获取session:   饿汉式
+		 7) isELIgnored="true|false"     在当前JSP中，是否要忽略EL
+				tomcat6.X以后，默认值为 false。
+		 8) language="java"   定义JSP中动态编程语言
+		 
+	2、include指令 （包含指令）
+		作用：用在当前JSP中，包含另一页面。
+		语法：<%@ include file="url" %>
+		
+		特点：静态包含、源代码包含、编译前包含
+		
+		注意：包含和被包含页面，不允许存在 同名的局部变量！
+
+	3、taglib指令（标签库指令）
+		作用：在当前JSP中，使用 自定义标签。
+		<%@ taglib uri="" prefix="" %>
+	
+五、动作元素
+	<jsp:动作名 属性名="值" 属性2="值2"/>
+	<jsp:动作名 属性名="值" 属性2="值2">xxxx</jsp:动作名>
+	
+	1、include动作
+		作用：用在当前JSP中，包含另一页面。
+		语法：1) <jsp:include page="url"/>
+		      2) 包含另一页面的同时，可以传递参数
+				<jsp:include page="url">
+					<jsp:param name="uname" value="tom"/>
+					<jsp:param name="" value=""/>
+				 </jsp:include>
+				 
+				 // 在被包含的页面中，获取参数
+				 String str = request.getParameter("uname");
+				 
+		特点：动态包含、结果包含、编译后包含
+		注意：开始和结束标签中 如果没有标签体内容，则必须写在同一行！
+		
+		等价于： request.getRequestDispatcher("/url-pattern").include(request, response);
+		
+	2、forward动作
+		等价于： request.getRequestDispatcher("/url-pattern").forward(request, response);
+		作用：从当前JSP，跳转到 另一页面。
+		语法：1) <jsp:forward page="url"/>
+			2) 跳转的同时，传参数
+				<jsp:forward page="url">
+					<jsp:param name="uname" value="tom"/>
+					<jsp:param name="" value=""/>
+				</jsp:forward>
+	
+				 // 在转到的页面中，获取参数
+				 String str = request.getParameter("uname");
+
+		注意：开始和结束标签中 如果没有标签体内容，则必须写在同一行！
+
+六、隐含对象（内置对象）
+	隐含对象，不需要new，可以在<%= %>和<% %>中直接使用的一组对象。
+	
+	1、request
+		类型：javax.servlet.http.HttpServletRequest
+		方法：request.getContextPath();   //动态获取 /web应用名
+	2、response
+		类型：javax.servlet.http.HttpServletResponse
+	3、out
+		类型：javax.servlet.jsp.JstWriter
+		方法：out.print()  out.println() out.write()
+	4、session
+		类型：javax.servlet.http.HttpSession
+	5、application
+		类型：javax.servlet.ServletContext
+	6、config
+		类型：javax.servlet.ServletConfig
+	7、page
+		类型：java.lang.Object
+		代表 当前页面自身，相当于 this。
+	8、exception
+		特殊：只能在 <%@ page isErrorPage="true" %>的页面中使用。
+		类型：java.lang.Throwable
+	9、pageContext
+		类型：javax.servlet.jsp.PageContext
+		1) 获取其它8个隐含对象
+			pageContext.getRequest()   getOut()
+		2) 作用域对象
+			开始：请求进入该页面开始
+			结束：请求离开该页面结束
+			使用：   pageContext.setAttribute("str", obj);
+					obj = pageContext.getAttribute("str");
+					pageContext.removeAttribute("str");
+		3) 操作其它3个作用域对象
+			pageContext.setAttribute("name","tom",PageContext.REQUEST_SCOPE);// 使用pageContext操作request作用域对象
+			obj = pageContext.getAttribute("name",PageContext.SESSION_SCOPE);//获取session中的命名属性
+			pageContext.removeAttribute("name");  //删除所有作用域中的同名命名属性
+			pageContext.removeAttribute("name", PageContext.APPLICATION_SCOPE);  //删除application中的命名属性
+			
+			// 按从小到大的顺序在JSP的作用域中搜索命名属性，搜到即返回
+			obj = pageContext.findAttribute("name");
+		4) forward、include
+		
+小结：
+	作用域对象（4）：pageContext request session application
+	响应相关（2）：response out
+	打酱油（2）：config page
+	特殊（1）：exception
+	
+
+====================== Day2 =============================
+
+JSP页面中的 无脚本开发。
+一、EL(Expression Language) 表达式语言
+	语法： ${EL表达式 }
+	作用： 计算表达式的值，并且输出。
+	
+	使用：
+	1、基本运算
+		+ - * / %
+		>(gt) >=(ge) <(lt) <=(le) ==(eq) !=(ne)
+		&&(and) ||(or) !(not)
+		
+		${empty n }  //判断n是否是null/''/""/集合中是否有元素，是-true，否则-false。
+		
+	2、获取client数据【重点】
+		EL： ${param.name属性值}
+		java代码：<%=request.getParameter("name属性值|get参数名")%>
+		
+	3、获取命名属性【重点】
+		1) 获取指定作用域中的命名属性
+			EL： ${requestScope.命名属性名称}
+			EL中的作用域对象（4个）： pageScope requestScope sessionScope applicationScope
+			java代码：<%  
+						obj = request.getAttribute("str");
+						类型转换
+						%>
+		2) 搜索命名属性（按从小到大，搜到即返回）
+			EL: ${命名属性名称}
+			java代码：<%
+						obj = pageContext.findAttribute("str");
+						类型转换
+						%>
+		3) 在1或2的基础上， 获取命名属性中的对象属性
+			EL: ${pageScope.命名属性名.对象属性名}
+				${pageScope.myUser.username}
+			java代码：<%
+						obj = pageContext.getAttribute("myUser");
+						User u = (User)obj;
+						out.println(u.getUsername());
+						%>
+	4、pageContext
+		JSP中的pageContext，代表 jsp中的页面作用域。只能在<%= %> 和<%%>中使用。
+		EL中的pageContext，让EL中可以使用JSP的9个隐含对象。
+			${pageContext.request.contextPath }   <%=request.getContextPath() %>
+			${pageContext.session.id}       <%=session.getId() %>
+			${pageContext.exception.message}        <%=exception.getMessage() %>
+
+二、JSTL（Java Standard Tag Library） java标准标签类库
+	自定义标签使用： <前缀:后缀 属性名="值" 属性2="值2"></前缀:后缀>
+	引入标签库：<%@ taglib uri="" prefix="前缀" %>
+					uri： 指定标签库配置文件的唯一标识（.tld文件中的<uri>标签内容）
+					prefix："前缀"
+					
+		<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+	分类：核心标签库【重点】、XML标签库、国际化和格式化标签库、SQL标签库
+	
+	1、分支结构
+		1) c:if 【重点】   替代java中的if语句（没有对应的else）
+			<c:if test="">xxxx</c:if>
+				test: 判断条件，可以是 <%= %>、${}(client的数据/命名属性)。
+		
+		2) c:choose      替代java中的switch...case...语句
+			<c:choose>    相当于switch
+				<c:when test="">xxx</c:when>     相当于case
+				<c:when test="">xxx</c:when>
+				<c:otherwise>xxx</c:otherwise>
+			</c:choose>
+				test: 判断条件，可以是 <%= %>、${}(client的数据/命名属性)。
+	2、循环结构 【重点】  
+		c:forEach    替代java中的for语句
+		1) 固定次数的循环      
+			<c:forEach var="i" begin="" end="" step="">
+				xxx
+			</c:forEach>
+				var：循环变量，只能在当前循环体内部使用，并且必须使用${}。
+				begin：初值
+				end：结束条件 
+				step：递增量
+		2) 遍历list/set集合
+			<c:forEach var="" items="">
+				xxx
+			</c:forEach>
+				items: 要遍历的集合内容，可以是 <%= %>、${}(client的数据/命名属性)。
+				var：每遍历1次用于存放集合元素的变量，使用时 ${}。
+		3) 遍历map集合
+			<c:forEach var="m" items="${requestScope.myMap}" varStatus="">
+				xxx ${m.key} ${m.value}
+			</c:forEach>
+				var: 每遍历1次，取出一个“键-值对”，${m.key}--键  ${m.value}--值。
+				varStatus: 迭代状态对象名/变量，常见属性：
+							count-数量，从1开始
+							index-索引，只对有下标的元素有效
+							first-是否是第1次遍历，是-true，否则-false
+							last-是否是最后1次遍历，是-true，否则-false
+	3、日期格式化
+		<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+		<fmt:formatDate value="要格式化的日期内容" pattern="yyyy-MM-dd"/>
+
+====================== Day3 =============================
+
+一、EL（接上）
+	1、获取cookie中的信息
+		EL： ${cookie.cookie的名称 }   获取名称为指定名字的cookie对象
+			${cookie.cookie的名称.value }   获取名称为指定名字的cookie对象中的值
+		JAVA代码：
+			<% 
+				Cookie[] cookies = request.getCookies();
+				if (cookies != null){
+					for(Cookie c: cookies){
+						// 获取名称为JSESSIONID的cookie对象  ${cookie.JSESSIONID}
+						if (c.getName().equals("JSESSIONID")){
+							// 获取名称为JSESSIONID的cookie对象的值  ${cookie.JSESSIONID.value}
+							out.println(c.getName()+","+c.getValue()+"<br/>");
+						}
+					}
+				}
+			%>
+	2、获取数组或集合元素
+		${xxxScope.myArr[0]}   获取命名属性是myArr的数组中的第1个元素
+		${xxxScope.myList[0]}   获取命名属性是myList的集合中的第1个元素
+		${xxxScope.myMap.键的名称 }   
+		${xxxScope.myMap["键的名称"]} 获取命名属性是myMap的集合中,key是指定名称的元素
+	
+二、JSTL（接上）
+	1、通用标签
+		作用：操作 命名属性（增改删查）。
+		1) c:set 
+			作用：设置命名属性。
+			<c:set var="" value="" scope=""/>
+				var： 命名属性名称
+				value： 要设置的值 
+				scope： 要设置的作用范围，可取值 page(默认)|request|session|application
+		2) c:out
+			作用：显示命名属性的值。
+			<c:out value=""/>
+				value: 指定要输出的内容
+		3) c:remove
+			作用：删除命名属性
+			<c:remove var="name" scope=""/>
+				var： 要删除的命名属性名称
+				scope： 要删除的作用范围，可取值 page|request|session|application
+					默认删除所有作用域中的同名命名属性
+	2、重定向
+		<c:redirect url=""/>
+			url： 指定要转向的资源地址，注意 路径 /url-pattern 。
+	
+三、MVC【重点】
+	是一种设计模式（体系结构）
+	经验的总结。
+	
+	M(Module):   模型，关注 业务和数据。
+	V(View):     视图，侧重 于 输入/输出 界面。
+	C(Controller): 控制器，控制整个程序的流程（从哪来？ 干什么？ 到哪去？）。
+						// 1 获取view中的请求
+						// 2 调用Module实现业务
+						// 3 根据结果，转view
+						
+	SUN公司，在MVC基础上，进行JAVA语言的实现，称为　Model II 体系结构。
+	Module: 普通java类，对应 service 和dao。
+	View: html/jsp
+	Controller: servlet-action， // 1 获取client数据
+	                             // 2 调用业务类的方法，实现“”功能
+								 // 3 根据结果，跳转
+								 
+	登录：login.html --> LoginAction <--> UserServiceImpl <--> UserDaoImpl <--> DB
+							|--> OkView/ErrorView
+	添加：add.jsp --> AddAction <--> PersonServiceImpl <--> PersonDaoImpl <--> DB
+						|--> OKView/add.jsp
+	查所有： QueryAllAction <--> PersonServiceImpl <--> PersonDaoImpl <--> DB
+				|--> queryAllView.jsp
+	登录：login.html --> LoginAction <--> UserServiceImpl <--> UserDaoImpl <--> DB
+							|--> QueryAllAction  <--> PersonServiceImpl <--> PersonDaoImpl <--> DB
+									|--> queryAllView.jsp
+	
+
+四、捡漏
+	1、get方式的中文乱码
+		tomcat根目录/conf/server.xml
+			<Connector port="8989" protocol="HTTP/1.1" 
+               connectionTimeout="20000" 
+               redirectPort="8443" URIEncoding="UTF-8" />
+
+	2、设置项目的默认主页   web.xml
+		<welcome-file-list>
+			<welcome-file>/login.jsp</welcome-file>
+			<welcome-file>/index.jsp</welcome-file>
+		</welcome-file-list>
+
+
+
+
+
+
+
+
+
+
+	
+JSP页面的常见错误：
+1、HTTP Status 500 - /first.jsp(m,n) .........
+	解决方案：检查 xxx.jsp的第m行。
+2、HTTP Status 500 - An exception occurred processing JSP page /xxxx.jsp at line 12	
+	解决方案：检查 xxx.jsp的第12行。
+3、HTTP Status 500   ，后面无显示或看不懂
+	看下面的“root cause”部分：
+
+	javax.el.PropertyNotFoundException: Property 'userame' not found on type com.zpark.bank.entity.User
+	。。。。。
+	org.apache.jsp.el1_jsp._jspService(el1_jsp.java:67)
+	。。。。
+	解决方案：打开el1.jsp翻译后的java源码，检查67行，并且在jsp源代码中找到对应语句 再次检查。
+
+	
+--------------------------
+
+${cookie.a.value}   //获取名称是a的cookie对象里的值
+${cookie.age}       //获取名称是age的cookie对象
+${age}				//搜索名称是age的命名属性
+${param.age}		//获取client请求数据（参数是age）
+${requestScope.age} //获取request中名称是age的命名属性
+
+--------------------------
+
+servlet中的作用域对象：（servlet中）
+	ServletRequest
+	HttpSession：第1次请求getSession(true)开始(懒汉式)   超时/手动销毁
+	ServletContext
+
+jsp中的作用域对象：（只能用在<%=%> <%%>）
+	pageContext
+	request
+	session：第1次请求开始(饿汉式)    超时/手动销毁
+	application
+
+EL中的作用域对象：（只能用在EL中）
+	pageScope
+	requestScope
+	sessionScope
+	applicationScope
+
+jsp中的作用范围：(用在JSTL的scope中)
+	页面   page
+	请求   request
+	会话   session
+	应用   application
+	

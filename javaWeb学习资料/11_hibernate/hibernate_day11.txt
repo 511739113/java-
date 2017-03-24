@@ -1,0 +1,201 @@
+0.jdbc:java的和数据库通信的底层技术。
+      ：通信的双方的数据规格不匹配,导致通信过程极其繁琐。
+  java                         数据库
+  class user{                        t_user(t_id,t_name,t_age)
+    id
+	name
+	age
+	orders
+  }                             
+  
+  Connection conn;
+  PrepareStatement stm;
+  String sql="xxxx";
+  stm.execute...
+  ResultSet rs;
+  List<User> users..
+  while(rs.next()){
+	Ur user=new User();
+	useser.setId(rs.getInt("xxx"));
+	。。。。
+	
+	users.add(user);
+  }
+  
+M   (jdbc) mybatis  hibernate
+V   JSP
+C   struts2
+=============================================================================================================
+1.hibernate:持久化框架，将jdbc封装在底层，简化java和数据库的通信过程
+  mybatis：持久化框架  sqlsession  半包装框架
+  ORM:Object   RelationShip   Mapping
+      java      关系型数据库   映射
+	 ：在java和数据之间，搭建桥梁，简化通信过程。
+     :映射点：
+	   *将User类和t_user表映射在一起。
+	   *将类中的属性和表中的字段映射在一起。
+	   class User{
+	      id
+		  name
+		  age
+	   }
+       t_user(t_id,t_name,t_age)
+	   
+	   User user=new User(1,"c46",18);
+	   save(user);
+============================================================================================================
+2.hibernate 搭建流程：
+  2.1 导包
+  2.2 配置文件：
+      *位置：src
+	  *名称：hibernate.cfg.xml
+		<hibernate-configuration>
+			<session-factory>
+				<!-- 数据库的连接参数 -->
+				<property name="hibernate.connection.username">hr</property>
+				<property name="hibernate.connection.password">hr</property>
+				<property name="hibernate.connection.url">jdbc:oracle:thin:@localhost:1521:xe</property>
+				<property name="hibernate.connection.driver_class">oracle.jdbc.OracleDriver</property>
+				<!-- hibernte自身参数
+					 dialect：方言，用于告知hibernate，数据库的种类，以便于hibernate内部对于不同的数据库，
+											  ：做出对应的优化。
+					 
+				 -->
+				<property name="hibernate.dialect">org.hibernate.dialect.Oracle10gDialect</property>	
+				
+				<!-- 注册映射文件 -->
+				<mapping resource="com/c46/mapping/user.hbm.xml"/>	
+			</session-factory>
+		</hibernate-configuration>
+  2.3 ORM
+      *映射文件
+	  *位置：任意
+	  *名称：任意   xx.hbm.xml
+	    <!--  package：抽取内部配置中的默认的 包名 -->
+		<hibernate-mapping package="com.c46.entity">
+			<class name="User" table="t_user46">
+				<!-- 
+					name:属性名
+					column:列名
+					技巧：如果同名，则column的一省略，则会默认将name的值作为column的值
+				 -->
+				<id name="id" column="id"></id>
+				<property name="name"/>
+				<property name="age" column="age"/>
+				<property name="birth" column="birth"/>
+			</class>
+		</hibernate-mapping>
+        *在配置文件中注册映射文件
+        <!-- 注册映射文件 -->
+		<mapping resource="com/c46/mapping/user.hbm.xml"/>	
+  
+  2.4 API：CURD
+      
+	  Configuration：持有所有配置信息，构建SessionFactory
+      SessionFactory：session工厂，用于构建session
+	  Session  :其中持有一个Connection，用于CURD
+	  
+	  Transaction：事务对象
+	  *api使用：
+		//1.创建Configuration ，加载所有的配置信息
+		Configuration cfg=new Configuration();
+		cfg.configure();//加载src下名为 hibernate.cfg.xml中的配置信息
+		//2.通过Configuation 构建SessionFactory
+		SessionFactory factory=cfg.buildSessionFactory();
+		//3.通过SessionFactory 构建Session
+		Session session=factory.openSession();
+		
+	  *增删改时要控制事务：
+		//开启事务
+		Transaction tx=session.beginTransaction();
+		.....CURD
+		//提交事务
+		tx.commit();
+		//回滚事务
+		//tx.rollback();
+	  *session的CURD：
+		session.get(Class,ID);
+		session.update(Object);
+		session.delete(Object);
+		session.save(Object)
+	  *释放资源：
+	    session.close();
+============================================================================================================
+3.session的获取方式：
+  1>factory.openSession();
+    :每次调用，都会创建新的session对象。
+  2>factory.getCurrentSession();
+    :同一个线程中，多次调用，返回的是同一个session
+	:此种方式获取的session，在使用时，无论时查询或者增删改，都需要事务环境。
+	:此种方式获取的session，会在事务结束时，自动释放资源。
+	:添加配置：
+       <property name="current_session_context_class">thread</property>	
+	   
+	   
+	Action        service                dao
+	                 
+				 getCurrentSession
+				 控制事务
+										   getCurrentSession
+											curd
+============================================================================================================
+4.HQL：(初解) Hibernate Query Language
+  SQL:  语法极其类似。
+  class User(id,name,age)   t_user(t_id,t_name,t_age)
+  *SQL:select * from t_user;
+   HQL:from User;
+  *SQL:select * from t_user where t_id >10 and t_name='c46'
+   HQL:from User u where u.id>10 and u.name='c46'
+  *SQL:select * from t_user where t_id between 1 and 10
+       select * from t_user where t_id in (1,2,3,5)
+   HQL:from User u where u.id between 1 and 10
+       from User u where u.id in (1,2,3,5)
+  *SQL:select * from t_user where t_name is null;
+   HQL:from User u where u.name is null;
+       from User u where u.name = null;
+  *SQL:select * from t_user where t_name like '%c46_';
+       from User u where u.name like '%c46_';
+  *SQL:select * from t_user order by t_id desc/asc;
+       from User u order by u.id desc/asc;
+  *API:
+    Query：执行HQL语句
+	Query query=session.createQuery();
+	query.list();
+	query.uniqueResult();
+	
+	String hql="from User u where u.name = ? and u.id > ? order by u.id desc";
+	//创建Query，以执行HQL
+	Query query=session.createQuery(hql);
+	//为hql中的占位符赋值
+	query.setString(0,"c46");
+	query.setInteger(1,0);
+	//执行
+	List<User> users=query.list();
+	或者
+	User user =(User)query.uniqueResult();
+	
+	*注意：list()适用所有情况
+	       uniqueResult()仅适用于结果集中至多有一行数据。
+============================================================================================================
+作业：
+ems：
+   DAO    session.xxx()
+   Service   session.beginTransaction()
+   *登录
+   *查询所有：
+   *删除：
+   *更新：
+   *插入：   
+    
+   
+
+
+
+	   
+  
+  
+  
+  
+  
+  
+  

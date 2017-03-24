@@ -1,0 +1,26 @@
+mybatis-config.xml
+	default 
+	transactionManager type="JDBC"
+	dataSource="POOLED"
+	mappers
+	mapper  resource
+
+mapper.xml
+	mapper namespace
+	insert 
+	selectKey
+	select
+	id
+	parameterType
+	resultType
+	order
+	keyProperty
+
+
+java代码
+	// 获取builder
+	// 获取配置文件的流对象
+	// 获取factory
+	// 获取session
+	// 获取dao
+	// 提交事务

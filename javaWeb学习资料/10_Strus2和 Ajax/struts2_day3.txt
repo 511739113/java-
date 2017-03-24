@@ -1,0 +1,183 @@
+1.struts数据处理机制：
+  *存值：值栈
+  *取值：OGNL
+  *展示数据：struts2标签
+=============================================================================================================
+2.值栈：ValueStack
+      ：存储数据，以辅助完成有Action向视图(jsp)的数据传递
+	  : 每当请求到来时，都会为当前请求，创建ValueStack对象。
+	  ：获取当前请求中的值栈对象：
+	    ActionContext context=ActionContext.getContext();
+	    ValueStack vs=context.getValueStack();
+
+		vs.setValue("#request.name","c46");//request.setAttribute("name","c46");
+		vs.findValue("#request.name");//request.getAttribute("name");
+		需求：通过值栈，向session中存储{"user",new User(1,"c46")}
+		vs.setValue("#session.user",new User(1,"c46"));//session.setAttribute("user",new User(1,"c46"));
+=============================================================================================================
+3.值栈的内部的存储结构：
+  3.1 context区域：Map   是struts2为ognl指定的上下文。
+		  key                value
+		"request"             Mapr   可等价操作请求作用域
+		"session"             Maps   可等价操作session作用域
+		"application"         Mapa   可等价操作ServletContext作用域
+		"parameters"          Mapp   存储当前请求中携带的参数
+	                          {id:["1"],name:["c48"],hobby:["ft","bt"]}
+	                           http://localhost:8989/appname/xx/xx?id=1&name=c48&hobby=ft&hobby=bt
+		*在context区域中，统一管理了三个作用域。
+	
+  3.2 root区域:ArrayList   root区域中的元素是struts2为ognl指定的根对象
+      *当前请求中的Action实例对象
+	  *Action除了是控制器之外，还是ognl的根对象
+	   class UserAction{
+		   private Integer age;
+		   private String name;
+		   public String queryAll(){
+				//vs.setValue("name","c46");
+				this.name="c46";
+		   }
+	   }
+	  *即，root区域的支持，使得有了全新的传值手段，通过根对象的属性传值 ：
+	   将业务结果存储则根对象的属性中，jsp从根对象的属性中获取。
+	  *注意：此种传值，由于时借助Action作为传值介质，而Action是一个请求的生命周期，
+	         所以，只适用于 转发时的数据传递。
+			 所以,此种传值手段，基本替换了请求作用域。
+			 
+  3.3 值栈好处：
+       1.集中管理了三个作用域，统一了作用域操作接口
+	   2.提供了全新的传值方式，使得，转发跳转时，传值更加方便
+	   3.打散了数据和视图的耦合，使得数据可以支持更多的视图技术。(jsp,freemarker)
+============================================================================================================
+4.struts2标签：展示(渲染)数据。
+  *导入标签库：<%@ taglib uri="/struts-tags" prefix="s" %>
+  4.1 取单值：
+      <s:property value="ognl"/>   ===> vs.findValue("ognl")
+	  使用环境：
+	    *标签体中：
+			<font color="red">
+				<s:property value="user.id"/>
+			</font>
+		*标签属性中：
+			<input type="text" value='<s:property value="user.id"/>'/>
+		*js中：
+			var a='<s:property value="user.id"/>'; 
+  4.2 逻辑分支：
+		<s:if test="#session.user.id>4">
+			user's id gt 4;
+		</s:if>
+		<s:elseif test="#session.user.id>1">
+			user's id gt 1;
+		</s:elseif>
+		<s:else>
+			user's id not gt 4;
+		</s:else>
+		
+		<s:if test="users.size()>0">
+			遍历~~~
+		</s:if>
+		<s:else>
+			提示。。。。。
+		</s:else>
+  
+  
+  4.3 遍历:
+	<!--【1】 简单遍历 
+   		for(int i=0;i<=10;i++){
+   		
+     	}
+     	遍历过程 会临时向值栈的context中存入{abc:当前循环变量}
+     	遍历结束，临时消除。
+   	-->
+   	<s:iterator begin="0" end="10" var="abc">
+   		abc<s:property value="#abc"/><br/>
+   	</s:iterator>
+   	<s:iterator begin="0" end="10" var="abc">
+   		<a href='url?pageNum=<s:property value="#abc"/>&a=<s:property value="#abc"/>' style="margin-left: 10px">
+   			<s:property value="#abc"/>
+   		</a>
+   	</s:iterator>
+	
+	<!-- 【2】根遍历：遍历集合15
+		 for(XX xx:List xx){
+		 
+		 }
+		 *遍历过程中，struts2会将当前元素，临时存入root区域中,成为优先级最高的根对象。
+		 *根遍历
+	-->
+	<br/>	
+	<s:iterator value="users">
+		<s:property value="id"/>
+		<s:property value="name"/>
+		<s:property value="gender"/><br/>
+	</s:iterator>
+	
+	
+    <!-- 【3】上下文遍历：遍历集合
+   	 	 for(XX xx:List xx){
+   	 	 
+   	 	 }
+   	 	 *遍历过程中，struts2会向context区域中存入{"u":当前元素}
+   	 	 *上下文遍历
+   	  -->
+   	  <br/>	
+   	  <s:iterator value="users" var="u">
+   	  	<s:property value="#u.id"/>
+   	  	<s:property value="#u.name"/>
+   	  	<s:property value="#u.gender"/><br/>
+   	  </s:iterator>
+	  
+	*补充：
+		<s:iterator value="users" var="u" status="a">
+   	  	<s:property value="#u.id"/>
+   	  	<s:property value="#u.name"/>
+   	  	<s:property value="#u.gender"/>
+		<s:property value="#a.index"/>
+		<s:property value="#a.count"/>
+		<s:property value="#a.odd"/>
+		<s:property value="#a.even"/><br/>
+   	  </s:iterator>
+============================================================================================================
+ems:
+    1.更换数据处理机制。
+	2.删除
+	3.添加
+	class AdminAction{
+		public String login(){}
+	}
+	class EmployeeAction{
+		public String queryALl(){
+		}
+		public String update(){}
+		public String delete(){}
+		public String createUser(){}
+	}
+	<package name="admin">
+	
+	<package name="employee">
+	
+	
+	request.setAttribute(xx,xx)===> this.xx=xxxx;
+	session.setAttribute(xx,xx)===> vs.setValue()
+	
+	class UserAction{
+		private User user;//属性既可以接收请求参数，又可以传递数据。
+		set/get;
+		public String queryOne(){
+			try{
+				this.user=userService.queryOne(user.getId());
+			}catch(AExecption e){
+				return "error1";
+			}catch(BExecption e){
+				return "error2";
+			}catch(CExecption e){
+				return "error3";
+			}catch(Execption e){
+				return "error4";
+			}
+		}
+	}
+      
+  
+  
+		
+      

@@ -1,0 +1,227 @@
+0.传统请求：form ，<a> ,location
+          :响应是一张完整的页面(request.getRequestDispatcher("/xx/xx/a.jsp").forward()
+								response.sendRedirect("/appname/xxx/abc.jsp");
+								)
+		  :情景：一个请求的响应不在需要一整张页面，只需要一个页面局部信息。
+		  ：网络资源浪费，用户体验极差，会打断用户操作。
+============================================================================================================
+1.ajax:发送异步请求
+      异步：多个事件在不同的执行线上，可以并发发生。
+	  同步：多个事件在同一个执行线上，只能串行发生。
+	  异步请求：相对与浏览器当前页面的展示，异步的发生。
+	          ：在浏览器正常展示当前页面的同时，在浏览器后台，偷偷的，发起一个请求。
+============================================================================================================
+2.ajax：客户端技术，运行在浏览器上。
+      ：JavaScript
+	    dom  
+		css
+		xhr 核心对象，发送异步请求
+	  ：特点：响应值不再一整张页面，而是一个页面局部信息(字符串)
+============================================================================================================
+3.get请求使用流程：
+	3.1 创建xhr：
+		var xhr46;
+		if(window.ActiveXObject){//IE
+			xhr46=new ActiveXObject("Microsoft.XMLHTTP");
+		}else if(window.XMLHttpRequest){//webkit  IE7+,chorme,safiri,opera,ff
+			xhr46=new XMLHttpRequest();
+		}
+	3.2 初始化xhr：
+		初始化xhr ：明确 请求位置URL，请求方式：get/post ,请求参数：param
+		xhr46.open("get", "${pageContext.request.contextPath}/ajax?name=c46&password=123");
+	3.3 发送请求：
+		xhr46.send();
+	3.4 设置监听：
+				xhr.readyState  0  1  2  3  4
+				              :0 未初始化       1初始化      2发送       3响应开始返回     4响应完毕
+				xhr.status  http请求的状态码：404   500   200
+		xhr46.onreadystatechange=function(){//监听xhr的readyState值的改变
+			if(xhr46.readyState==4 && xhr46.status==200){//请求成功 且  响应完毕
+				//接收响应值
+				var ret=xhr46.responseText;
+				console.log("ret:"+ret);
+				//将响应值刷新到页面的某个局部上:DOM
+				$("#txt").val(ret);
+			}
+		}
+	*注意，服务器在响应一个异步请求时：响应一个页面局部信息
+			PrintWriter out=res.getWriter();
+			out.print("hilo~~c46");
+			out.flush();
+			out.close();
+============================================================================================================
+4.post请求使用流程：
+	4.1 创建xhr：
+		var xhr46;
+		if(window.ActiveXObject){//IE
+			xhr46=new ActiveXObject("Microsoft.XMLHTTP");
+		}else if(window.XMLHttpRequest){//webkit  IE7+,chorme,safiri,opera,ff
+			xhr46=new XMLHttpRequest();
+		}
+	4.2 初始化xhr：【1】
+		初始化xhr ：明确 请求位置URL，请求方式：get/post ,请求参数：param
+		xhr46.open("post", "${pageContext.request.contextPath}/ajax");
+		*注意：如果在post请求要携带请求参数，则需要明确请求头:【3】
+		xhr46.setRequestHeader("content-type","application/x-www-form-urlencoded");
+	4.3 发送请求：【2】
+		xhr46.send("name=c46&password=123");
+	4.4 设置监听：
+				xhr.readyState  0  1  2  3  4
+				              :0 未初始化       1初始化      2发送       3响应开始返回     4响应完毕
+				xhr.status  http请求的状态码：404   500   200
+		xhr46.onreadystatechange=function(){//监听xhr的readyState值的改变
+			if(xhr46.readyState==4 && xhr46.status==200){//请求成功 且  响应完毕
+				//接收响应值
+				var ret=xhr46.responseText;
+				console.log("ret:"+ret);
+				//将响应值刷新到页面的某个局部上:DOM
+				$("#txt").val(ret);
+			}
+		}
+	*注意，服务器在响应一个异步请求时：响应一个页面局部信息
+			PrintWriter out=res.getWriter();
+			out.print("hilo~~c46");
+			out.flush();
+			out.close();
+============================================================================================================
+5.乱码解决；
+  get:
+	*页面：html:<meta http-equiv="content-type" content="text/html;charset=utf-8">
+	       jsp：pageEncoding="utf-8"
+	*client-->server
+	   tomcat -->conf/server.xml   URIEncoding="utf-8"
+	*server-->client
+	   在使用response响应之前：
+	   response.setCharacterEncoding("utf-8");
+  post:
+	*页面：html:<meta http-equiv="content-type" content="text/html;charset=utf-9">
+	       jsp：pageEncoding="utf-8"
+	*client-->server
+	   在使用request收参之前：
+			resquest.setCharacterEncoding("utf-8");
+	*server-->client
+	   在使用response响应之前：
+	   response.setCharacterEncoding("utf-8");
+============================================================================================================
+6.缓存解决：
+  get请求中，遇到浏览器缓存的干扰：
+  http://localhost:8989/appname/xxx/xxx?name=c44&a=Math.random();
+============================================================================================================
+7.在异步请求中通信更复杂的数据：
+  *在服务端：
+      1>将java对象中数据，转换到字符串中。  【1】
+	  2>将含有大量数据的字符串，写出给client作为响应。
+  *在客户端：
+	  1>在接收到响应后，解析字符串中的数据   【2】
+	  2>将解析到的数据，通过dom刷新到页面中
+============================================================================================================
+8.如何将java对象转换为字符串：JSON
+  json:具有特定描述规格的字符串；用来描述数据。
+  class Student{id,name,age,gender}  
+  *java:new Student(1,"c46",18,true);
+   json:{"id":1,"name":"c46","age":18,"gender":true}
+  *java:List<Student> stus===>new Student(1,"c46",18,true);new Student(2,"c47",19,true);
+   json:[{"id":1,"name":"c46","age":18,"gender":true},{"id":2,"name":"c47","age":19,"gender":true}]
+  *java:List<Object> stus===>new Student(1,"c46",18,true);"c44";18;true
+   json:[{"id":1,"name":"c46","age":18,"gender":true},"c44",18,true]
+  *java:Map<String,Object> map===>"key1":new Student(1,"c46",18,true);
+                                  "key2":"c44"
+								  "key3":true
+   json:{"key1":{...},"key2":"c44","key3":true}
+   
+  *Google--gson.jar:将java对象转换为json串
+		//构建GsonBuilder
+		GsonBuilder gsonBuilder=new GsonBuilder();
+		gsonBuilder.setDateFormat("yyyy-MM-dd HH:mm:ss");
+		//通过GsonBuilder 构建Gson
+		Gson gson=gsonBuilder.create();
+		//通过Gson将java对象转换为json串，可传入任何java对象
+		String jsonStr=gson.toJson(user);
+============================================================================================================
+9.客户端，将json解析成js对象：$.parseJSON(json串);
+	var json46='{"id":1,"name":"c46","gender":true,"birth":"2015-11-05 15:51:52"}';
+	var json47='[{"id":1,"name":"c46","gender":true,"birth":"2015-11-05 15:51:52"},{"id":2,"name":"c47","gender":true,"birth":"2015-11-05 15:51:52"},{"id":3,"name":"c48","gender":true,"birth":"2015-11-05 15:51:52"}]';
+	//解析json，将json解析成js对象
+	var ret=$.parseJSON(json46);
+	var ret2=$.parseJSON(json47);
+	console.log(ret.id+" "+ret.name+" "+ret.gender+" "+ret.birth);
+	for(var i=0;i<ret2.length;i++){
+		var curr=ret2[i];
+		console.log(curr.id+" "+curr.name+" "+curr.gender+" "+curr.birth);
+		console.log("======");
+	}
+============================================================================================================
+10.jquery对于ajax的简化：
+   $.ajax({
+		type:"get/post",
+		url:"xxx",
+		data:"a=123&b=cde",
+		success:function(ret46){//会在请求成功且响应完毕时自动执行。ret46就是xhr.responseText;
+			..
+		},
+		dataType:"json"//指示当前请求的响应为json，则 ret46就已经时解析好的js对象。
+   });
+   $.ajax({
+		type:"post",
+		url:"${pageContext.request.contextPath}/users",
+		data:"name=c44&password=123",
+		success:function(ret46){
+			$("tr:gt(0)").remove();
+			for(var i=0;i<ret46.length;i++){
+				var curr=ret46[i];
+				//dom:刷新页面
+				$("tbody").append("<tr>"+
+									"<td>"+curr.id+"</td>"+
+									"<td>"+curr.name+"</td>"+
+									"<td>"+curr.gender+"</td>"+
+									"<td>"+curr.birth+"</td>"+
+								  "</tr>");
+			}
+		},
+		dataType:"json"
+	});
+============================================================================================================
+作业：用户管理系统，异步实现：
+  1.建表  create table t_user(xxx,xx,xx)
+  2.dao，service，action
+  3.功能点：*查询所有
+            *插入
+			*删除
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+============================================================================================================
+自我介绍：
+	臧红久   18301161911
+	
+ajax:
+framework：
+   struts2     
+   hibernate
+   spring
+   
+   
+   *xml     class Student{id,name,age}  new Student(1,"c46",18);
+   <student>
+		<id>1</id>
+		<name>c46</name>
+		<age>18</age>
+   </student>
+  *json   class Student{id,name,age}  new Student(1,"c46",18);
+    {"id":1,"name":"c46","age":18}

@@ -1,0 +1,99 @@
+// 1对1
+1学生   可以借   0-1电脑  （FK+unique）
+1电脑   可以借给   1学生
+
+**查学号是1的学生以及借的电脑信息
+
+select sid,sname,cid,cname
+from student s
+join computer c
+on s.cid = c.cid 
+where sid=1
+
+Student.java(学生  --》 1电脑)
+	sid
+	sname
+	private Computer com;
+	
+Computer.java
+
+
+	<resultMap id="" type="">
+		<id...
+		<result...
+		<!-- 关系属性 -->
+		<association property="" javaType="">
+		....
+	</resutlMap>
+	
+
+// 1对多
+1班级 包含 0-N学生
+1学生 存在于 1班级
+
+// 多对多
+1学生 可以选 1-N课程
+1课程 被选   0-N学生
+
+**查询学号是1的学生以及选了哪些课程
+
+select *
+from student s
+join sc 
+on s.sid = sc.sid
+join course c
+on c.cid = sc.cid
+where s.sid = 1
+
+Student.java  (学生 --》 N课程)
+	sid
+	sname
+	private List<Course> courList;
+
+Course.java
+
+
+<resultMap id="" type="">
+	<id..>
+	<result....
+	<!-- 关系属性 -->
+	<collection property="" ofType="Course"
+	....
+
+=======================
+班级（“一”）     学生 （“多”）
+// 单向 多向一 （根据ID查1个学生并且把所在班级信息查出来）
+// 在主要对象一方（学生“多”的一方），定义关系属性
+开发步骤：
+1) 定义“一”一方的实体类
+    class Clazz{
+		private Integer clzId;
+		private String clzName;
+	}
+2) 定义“多”一方的实体类 Student
+	class Student{
+		private Integer stuId;
+		private String stuName;
+		private Stirng stuEmail;
+		//关系属性(学生 --> 1班级)
+		private Clazz clz;
+	}
+
+	public Student selecOne(Integer id);
+	
+	Mapper.xml
+		<!-- 定义 查询结果 和 对象(包含关系属性) 的映射关系 -->
+		<resultMap id="id1" type="entity.Student">
+			<id 
+			<result
+			<!-- 关系属性 -->
+			<association property="关系属性的属性名" javaType="关系属性的类型">
+				<id
+				<result
+			</xxx>
+		</resutMap>
+		<select id="" prameterType="" resultMap="id1">
+
+	stu = dao.selectOne(1);
+	stu.getClz().getClzName();
+	

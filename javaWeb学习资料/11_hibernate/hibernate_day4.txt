@@ -1,0 +1,216 @@
+1.HQL：单表 select  xx   from   xx   where  xx   group by xx  having xxx  order by xx
+  1.1 映射查询  ：select u.id,u.name,u.age from User u
+                  ===>select t_id,t_name,t_age from t_user46;
+	  返回值的封装规格：
+	  HQL:select u.id, u.name,u.age,u.birth from User u
+		              
+					  User
+		1;mochaofeng;18;2015-11-17 11:12:17.0;   ===>Object[]{1,"mochaofeng",18,xxx}
+		2;wangyanan;19;2015-11-17 11:12:17.0;    ===>Object[]{2,"wangyanan",19,xxx}
+		3;zhanboqi;20;2015-11-17 11:12:17.0;
+		4;qinyingguang;21;2015-11-17 11:12:17.0; 
+												 ===>List<Object[]>
+	  *细节：当只查询一个字段时：返回值和字段类型一致。
+		  HQL:select u.id from User u;
+			
+			id
+			1;    Integer 1  
+			2;
+			3;
+			4;
+				  List<Integer>
+		  HQL:select u.name from User u;
+			
+			  name
+			mochaofeng;            String:"mochaofeng"
+			wangyanan;
+			zhanboqi;
+			qinyingguang;
+									List<String>
+===========================================================================================
+2.分组使用：
+  select u.id,max(u.id),min(u.id),avg(u.age),count(u.age),sum(u.age)  " +
+				   "from User u where u.id>? group by u.id having avg(u.age)>?
+  select max(o.price),min(o.price),avg(o.price),sum(o.price),o.user46.id  from Order o " +
+				   "group by o.user46.id"; 
+  *分组语句，也是映射查询，所以封装规格同上。
+===========================================================================================
+3.子查询：（了解）
+  SQL:select xxx  from (子查询)
+      select xxx  from xx  where  xx =(子查询)
+  HQL:select xxx  from xx  where  xx =(子查询)
+     :select u.id,u.name,u.age  from User u where u.id=(select o.user46.id from Order o where o.id=?)
+===========================================================================================
+4.表连接：HQL+Query
+  *隐式表连接：没有连接关键字(了解)
+     仅使用于：*连1
+	 却不适用于：1连*
+	 且,会使用笛卡尔连接，连接效率低。
+	 String hql="from Order o where o.user46.name=?";【*连1】
+	 String hql="from User u where u.orders.id=?";【1连*】
+  *显示表连接：有连接关键字
+     String HQL="from A  a left/right/inner join a.关系属性"
+	 *结果集的封装规格：
+		HQL:from User u left join u.orders where u.id>0
+				User										Order
+		4;7;21;2015-11-17 11:12:17.0;qinyingguang;        xx7;700;4;            ==>Object[]{User,Order}
+		3;8;20;2015-11-17 11:12:17.0;zhanboqi;            new_order1;400;3;     ==>Object[]{User,Order}
+		3;11;20;2015-11-17 11:12:17.0;zhanboqi;           new_order2;500;3;
+		3;10;20;2015-11-17 11:12:17.0;zhanboqi;           new_order1;400;3;
+		3;9;20;2015-11-17 11:12:17.0;zhanboqi;            new_order2;500;3;
+		2;3;19;2015-11-17 11:12:17.0;wangyanan;           xx3;300;2;
+		2;4;19;2015-11-17 11:12:17.0;wangyanan;           xx4;400;2;
+		1;<NULL>;18;2015-11-17 11:12:17.0;mochaofeng;     <NULL>;<NULL>;<NULL>;
+	 
+	 *迫切表连接：fetch															    ===>List<Object[]>
+	    HQL:from User u left join fetch u.orders where u.id>0
+				User										Order
+		4;7;21;2015-11-17 11:12:17.0;qinyingguang;        xx7;700;4;            ==>User
+		3;8;20;2015-11-17 11:12:17.0;zhanboqi;            new_order1;400;3;     ==>User
+		3;11;20;2015-11-17 11:12:17.0;zhanboqi;           new_order2;500;3;
+		3;10;20;2015-11-17 11:12:17.0;zhanboqi;           new_order1;400;3;
+		3;9;20;2015-11-17 11:12:17.0;zhanboqi;            new_order2;500;3;
+		2;3;19;2015-11-17 11:12:17.0;wangyanan;           xx3;300;2;
+		2;4;19;2015-11-17 11:12:17.0;wangyanan;           xx4;400;2;
+		1;<NULL>;18;2015-11-17 11:12:17.0;mochaofeng;     <NULL>;<NULL>;<NULL>;
+																			    ===>List<User>
+	 *迫切表连接，解决了结果集封装的问题，但存在数据重复，导致重复的原因如下：
+		*封装过程：
+		  List<User> users;
+		  users.add(user1);
+		  users.add(user2);
+		  users.add(user2);
+		 1.第一条数据，user的id为4 则创建User user1存储用户信息，在创建Order order1存储
+		   order信息。最终将order1 存入到user1中。
+		   user1存入users
+		 2.第二条数据,user的id为3 则创建User user2存储用户信息，在创建Order order2存储
+		   order信息。最终将order2 存入到user2中。
+		   user2存入users
+		 3.第三条数据,user的id依然为3，id没有变，则不在创建user，而是使用user2，在创建
+		   Order order3存储order信息。最终将order3 存入到user2中。
+		   user2存入users
+		   至此，重复出现
+	 *解决方案：
+	    1.distinct
+			select distinct u from User u left join fetch u.orders where u.id>?
+		2.LinkedHashSet   
+===========================================================================================
+5.hibernate对分页的支持
+	String hql="from Order o order by o.id asc";
+	Query q=session.createQuery(hql);
+	int pageSize=3;//每页3条
+	int pageNum=3;//页号
+	//设置本次查询，最多查询多少条
+	q.setMaxResults(pageSize);
+	//设置本次查询，从第几条开始查起，从0开始
+	q.setFirstResult((pageNum-1)*pageSize);
+	List<Order> orders=q.list();
+==========================================================================================
+6.主键维护策略：
+  6.1 increment  递增 
+     @GenericGenerator(name="inc46",strategy="increment")
+	 @GeneratedValue(generator="inc46")
+	 private Integer id;
+	 *利于测试，简单
+	 *弊端：不适用于并发环境.
+  6.2 sequence  序列
+     @GenericGenerator(name="seq46",strategy="sequence"
+	                  ,parameters={@Parameter(name="sequence",value="user_seq")})
+	 @GeneratedValue(generator="seq46")
+	 private Integer id;
+	 *细节：如果不指定序列名，则默认查找名为：hibernate_sequence的序列
+     *适用于：支持序列的数据库：oracle  db2
+  6.3 identity  自增
+     @GenericGenerator(name="id46",strategy="identity")
+	 @GeneratedValue(generator="id46")
+	 private Integer id;
+	 *适用于：
+		 mysql:create table xx(id xx auto_increment primary key,....)
+		 sqlserver:create table xx(id xx identity primary key,....)
+  6.4 uuid:可生成32位由16进制字符组成的全球唯一的字符串
+     *是没有数据库依赖的。
+	 *适用于分布式系统中。
+	 @GenericGenerator(name="uuid46",strategy="uuid")
+	 @GeneratedValue(generator="uuid46")
+	 private String id;
+  6.5 assigned  人为指定（了解）
+     @GenericGenerator(name="ass46",strategy="assigned")
+	 @GeneratedValue(generator="ass46")
+	 private Integer id;
+	 *细节：如果不指定维护策略，则默认就是需要人为指定的。
+==========================================================================================
+7.hibernate高级特性：
+  7.1 脏数据检测  dirty check
+      *在一个事务中，hibernate加载过的数据，会在session中留取备份，且会交给用户另一份。
+	   在事务提交时，会对用户的操作的数据，进行检测，检测用户是否改动了数据。
+	   如果发现用户改动了数据，则数据持有的数据为【脏数据】，则会将【脏数据】的数据状态
+	   同步到数据库。
+  7.2 延缓提交  lazy-commit
+      *在一个事务中，所有的增删改操作，都不会立即执行,会被延缓，到事务提交时，将所有的
+	   增删改操作打包为一个batch(批)，整体执行。提高执行效率。
+	  *强制提交：session.flush();前置提交当前事务中延缓的操作。
+	  *可以方便的做出批处理操作。
+	  
+	  tx
+	    session.save(xxx);
+		session.save(xxx);
+	    session.update(xxx);
+		session.flush();
+		session.delete(xx);
+		session.get(xxx,ID);
+	  tx.commit
+  7.3 延迟加载：lazy-load
+      *在一个事务中，有的查询不是立即执行的，而是被延迟，知道事务内真正使用了对应数据，
+	   才去查询，进而提高查询效率。
+	  *关系属性延迟:
+        -->集合类型的关系属性会被延迟。
+		-->关闭延迟：@OneToMany(mappedBy="user46",fetch=FetchType.EAGER)
+		             @ManyToMany(fetch=FetchType.EAGER)
+	  *普通属性延迟：(了解)
+	    session.get(Class,ID);
+		session.load(Class,ID);//会延迟加载普通属性
+	  *异常：延迟加载异常：
+	       ：当在事务外部初次使用了延迟的属性时，由于事务结束，session关闭
+		     无法查询延迟的属性，则会报出【延迟加载异常】
+	  *解决方案：
+	     1. 通过fetch=FetchType.EAGER关闭延迟
+		 2. 在事务内部强制加载
+		 3. spring:OpenSessionInView
+		 
+		action      service       dao
+		xx
+		              tx
+					               User
+								   User.getOrders().size();
+					  User
+					  commit;
+		User
+		
+		JSP: User
+		     Orders
+========================================================================================== 
+连接池
+
+对象状态
+
+锁
+
+缓存 
+
+
+
+作业：
+  *注意：更新时，务必要查询，在更新。 
+更新：
+  Action     Service     DAO
+  Dept     
+                tx
+				Dept
+				         Dept
+						 sessi on.update(Dept);
+
+  
+  
+  
+  
+  

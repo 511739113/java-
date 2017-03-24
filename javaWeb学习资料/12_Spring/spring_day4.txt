@@ -1,0 +1,207 @@
+1.动态代理的生成原理：反射
+  生成机制：
+    *JDK代理机制：通过实现接口的方式，约束代理和目标有同样的功能实现。
+	*CGLIB代理机制：通过继承目标的方式，约束代理和目标有同样的功能实现。
+	*spring会判断目标中是否有接口实现，如果有则使用jdk，否则使用cglib
+		//目标
+		final UserService userService = new UserServiceImpl();
+		//额外功能
+		InvocationHandler ih=new InvocationHandler(){
+			//param:method:目标方法对象
+			//     :args：参数表
+			@Override
+			public Object invoke(Object proxy, Method method, Object[] args)
+					throws Throwable {
+				System.out.println("before");
+				Object ret=method.invoke(userService, args);//执行目标userService的方法
+				System.out.println("after");
+				return ret;
+			}
+		};
+		//组装
+		UserService usProxy=(UserService)Proxy.newProxyInstance(TestDynamicProxy.class.getClassLoader()
+																, userService.getClass().getInterfaces()
+																, ih);
+===========================================================================================
+2. spring对于hibernate事务的管理
+	<!-- 事务管理器
+		HibernateTransactionManager 并不是环绕额外功能，其中持有了SessionFactory，包装了事务管理的主体逻辑，
+		需要将其进一步的加工，做出真正的事务管理器（环绕额外功能）
+	 -->
+	<bean id="tx" class="org.springframework.orm.hibernate3.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"></property>
+	</bean>
+	<!-- 
+		在有了HibernateTransactionManager,基于schema(tx),进一步包装出真正的事务管理器，并定义事务的相关属性
+		事务属性：
+		  1.隔离级别：
+		     *读未提交      事务之间可以读取到对方未提交的数据，并发性极好，会导致【脏读】
+		                                   【脏读】:在一个事务中读取到了其他事务中未提交的数据
+		     *读提交          事务之间只可以读取到对方已提交的数据，并发性较好，可防止【脏读】，但不能防止【不可重复读】
+		                                   【不可重复读】:在一个事务中，多次读取同一条数据，结果不一致。
+		     *可重复读      事务之间，可以保证，任何事务，多次读取同一条数据，结果一致。并发性较差。可防止【不可重复读】不能防止【幻影读】
+		                                   【幻影读】:在一个事务中，多次读取同一张表，但数据行数不一致。
+		     *序列化读     事务之间，是串行发生的。并发性极差。可防止一切不合法的读取。
+		     oracle 中 只实现了  读提交  和   序列化读   且   度提交是默认的隔离级别。
+		  2.传播性：
+		     SUPPORTS:如果当前已有事务环境，则融入事务环境，如果没有是环境，则在非事务环境下执行。
+		     REQUIRED:如果当前已有事务环境，则融入事务环境，如果没有是环境，则开启事务环境。
+		  3.读写性：
+		     read-only="false" 读写
+		     read-only="true" 只读
+		  4.回滚时刻：
+		     rollback-for="java.lang.Exception"
+		            当核心业务中抛出了异常，则回滚事务
+			 *默认行为：当事务中抛出RuntimeException 时自动回滚。
+		                当事务中抛出Exception 需要人为处理，否则，会提交事务。
+		事务特性：ACID
+			原子性
+			持久性
+			一致性
+			隔离性
+	 -->
+	<tx:advice transaction-manager="tx" id="txManager">
+		<tx:attributes>
+			<tx:method name="query*" propagation="SUPPORTS"/>
+			<tx:method name="*" isolation="READ_COMMITTED" propagation="REQUIRED" read-only="false" rollback-for="java.lang.Exception"/>
+		</tx:attributes>
+	</tx:advice>
+    *注意：在引入spring的事务控制之后，在SessionFactory的组件中：
+		<!-- 当由spring管理事务后，事务是由spring持有的线程唯一的session控制的，
+			 如果有此行配置，则dao中在通过这个sessionFactory.getCurrentSession()时获取的时Hibernate中持有的
+			 线程唯一的session，会导致，事务控制不到DAO。
+			
+			 解决方案：去掉此行配置，则DAO通过这个sessionFactory.getCurrentSession()时获取的时spring中持有的
+			 线程唯一的session，事务控制成功。
+		-->
+		<prop key="hibernate.current_session_context_class">thread</prop>
+==========================================================================================
+3. spring对于mybatis事务的管理
+	<!-- 事务管理器 
+		DataSourceTransactionManager 负责持有连接，组织事务管理的主体逻辑，
+		但并不是环绕的额外功能，所以还需要进一步的加工。
+	-->
+	<bean id="tx" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource46"></property>
+	</bean>
+	<!-- 在 DataSourceTransactionManager的基础上，通过 tx :schema 进一步加工，得到真正的事务管理器-->
+	<tx:advice id="txManager" transaction-manager="tx">
+		<tx:attributes>
+			<tx:method name="insert" isolation="READ_COMMITTED" propagation="REQUIRED" read-only="false" rollback-for="java.lang.Exception"/>
+			<tx:method name="*" isolation="READ_COMMITTED" propagation="REQUIRED" read-only="false" rollback-for="java.lang.Exception"/>
+		</tx:attributes>
+	</tx:advice>
+==========================================================================================
+4.ssh整合：
+  0.数据源、SessionFactory、DAO、事务管理器、Service、Action
+	  数据源、SqlSessionFactory、MapperScannerConfigurer、事务管理器、Service、Action
+  1.告知struts2，当需要Action实例时，从spring工厂中获取，而不是new。
+   解决方案：导入插件包：spring-struts2-plugin.jar 
+                     :<action name="xxxx"   class="action在工厂中的beanID">
+                      <action name="xxxx"   class="userAction46">
+	2.何时启动工厂：在项目启动，随之启动工厂。
+    解决方案：注册监听 org.springframework.web.context.ContextLoaderListener，负责在项目启动时，开启工厂
+                          需要定制名为：contextConfigLocation的context-param ，告知spring配置文件的位置。
+
+==========================================================================================
+5.OpenSessionInView:解决延迟加载问题
+  OPenSessionInViewFilter:被此过滤器过滤的请求，请求中的session会在事务结束后，依然时
+	                        开启的，知道视图渲染完毕，才关闭session。
+	<!-- OpenSessionInViewFilter -->
+  <filter>
+  	<filter-name>osiv46</filter-name>
+  	<filter-class>org.springframework.orm.hibernate3.support.OpenSessionInViewFilter</filter-class>
+  	<!-- 依赖SessionFactory 则需要指定工厂中SessionFactory的BeanID
+  	     如果不指定默认查找ID为“SessionFactory”的Bean
+  	 -->
+  	<init-param>
+  		<param-name>sessionFactoryBeanName</param-name>
+  		<param-value>sessionFactory46</param-value>
+  	</init-param>
+  </filter>
+  <filter-mapping>
+  	<filter-name>osiv46</filter-name>
+  	<url-pattern>/ssh/user_queryOneUser</url-pattern>
+  	<url-pattern>/ssh/a</url-pattern>
+  	<url-pattern>/ssh/b</url-pattern>
+  	<url-pattern>/a/b</url-pattern>
+  </filter-mapping>
+	*注意：不建议使用/*
+ 
+  Action    Service     DAO
+	            tx
+												User user=(User)get(User.class,1);
+							user
+							commit;
+		user
+		
+	JSP:user  order
+==========================================================================================
+6.基于注解的ssh：
+  6.1 将当前的类纳入工厂且id默认为类名的首字母小写
+		@Component
+		@Component(value="userAction46")
+		@Scope(value="prototype")//非单例
+  6.2 IOC
+		@Resource(name="userDAO46")//根据名字自动注入
+		private UserDAO ud;
+    @Autowired//根据类型自动注入
+		private UserService userService;
+  6.3 事务管理
+		//加在类上的事务注解，是类中所有方法的缺省的事务属性
+		@Transactional(isolation=Isolation.READ_COMMITTED,propagation=Propagation.REQUIRED,readOnly=false,rollbackFor=Exception.class)
+    如果类中的方法，需要单独定制事务属性，则可以在方法上：
+		@Transactional(xxx)
+  6.4 对于注解的支持：
+		<!-- 告知spring那些包中存在含有注解的类，需要解析 -->
+		<!-- <context:component-scan base-package="com.c46.action,com.c46.service"></context:component-scan> -->
+		<context:component-scan base-package="com"></context:component-scan>
+		<!-- 在利用注解切入事务时，要指定事务的种类(主体逻辑) -->
+	  <tx:annotation-driven transaction-manager="tx"/>
+==========================================================================================
+7.hiberante更新过程的相关支持：
+		User user1=new User(1, null, 18, new Date());
+		
+		
+		User user2=new User(2,"c47",19,new Date());
+		//将user1中的数据 赋值到user2  
+		//将user1中的属性的值，复制到user2的同名的属性中
+		//通过调用双方的set和get实现属性值的复制
+		org.springframework.beans.BeanUtils.copyProperties(user1, user2);
+==========================================================================================
+8. log4j
+   
+
+
+
+
+
+
+
+
+interface A{
+  m1();
+	m2();
+}
+class ASupport implements A{
+	m1(){}
+	m2(){}
+}
+
+class B extends ASupport{
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 

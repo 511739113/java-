@@ -1,0 +1,61 @@
+<标签 ... 事件名="函数名(实参)" />
+
+onclick
+<select onchange
+<form onsubmit="return 函数名(实参)"
+
+使用JS给dom对象注册事件：
+	dom对象.事件名 = function(){
+		//JS语句
+		// 调用其它的JS函数
+		delRow(this);
+	};
+
+	
+	
+	function delRow(obj){
+	
+	}
+	
+JS在开发中的应用：
+1、表单验证
+	var domObj = document.getElementById("id的属性值");
+	var dimArr = document.getElementsByName("name的属性值");
+	
+	domObj.value 
+	domObj.innerText
+	domObj.innerHTML
+	domObj.style.样式属性名
+	domObj.className 
+2、修改元素的样式属性
+	显示/隐藏
+	domObj.style.display = "none|block";
+	
+3、全选/全不选
+	chkArr[i].checked = true|false;
+4、手动提交表单
+	function submitForm(){
+		// 获取查询条件
+		
+		// 根据不同的条件，提交到不同的server端程序 
+		form对象.action = "url"
+		
+		// 提交表单
+		form对象.submit();
+	}
+	
+	<input type="button" onclick="submitForm()"
+5、确认删除
+	queryAllView.jsp
+	funciton confirmDel(pid){
+		var bn = window.confirm("确认删除吗？");
+		if (bn){
+			location.href = "${pageContext.request.contextPath}/person/delAction?id=" + pid;
+		}
+	}
+	
+	<a href="javascript:void(0)" onclick="confirmDel('${per.id}')">删除</a>
+	
+document.forms[0].
+	
+	

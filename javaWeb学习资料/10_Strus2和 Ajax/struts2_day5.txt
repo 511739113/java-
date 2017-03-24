@@ -1,0 +1,95 @@
+1.上传：将客户端的文件 传送给 服务器
+  *在客户端，将文件发送给服务器
+  *服务器接收文件
+  *服务器将文件写出到硬盘。
+  *注意：struts2默认支持的上传文件的大小是 2M
+       ：可以通过设置常量修改其默认配置
+	     <constant name="struts.multipart.maxSize" value="209715200"></constant>
+  1.1 定制表单：
+	<!-- method:post
+	     enctype:multipart/form-data
+	 -->  	
+    <form action='<s:url value="/up/up46"/>' method="post" enctype="multipart/form-data">
+    	<input type="file" name="source46"/>
+    	<input type="submit" value="上传"/>
+    </form>
+  1.2 在Action中接收文件：
+		//获取到上传的文件
+		private File source46;
+		//获取到文件的文件名  ： acb.xxx
+		private String source46FileName;
+		//获取文件的content-type
+		private String source46ContentType;
+		set/get;
+  1.3 定制IO，将文件写出到服务器硬盘：
+		input=new FileInputStream(source46);
+		//将项目中upload目录，被部署到服务器后的磁盘路径获取出来。
+		String path=ServletActionContext.getServletContext().getRealPath("/upload");
+		output=new FileOutputStream(path+"\\"+source46FileName);
+		byte[] con=new byte[1024];
+		while(true){
+			int len=input.read(con);
+			if(len==-1){
+				break;
+			}
+			output.write(con, 0, len);
+		}
+============================================================================================================
+2.下载：将服务器的文件 传送到 客户端。
+   *服务器接收到下载请求，读取对应文件
+   *将文件写出给客户端。
+   
+   1>在客户端定制请求，请求服务器资源。
+	 <a href='<s:url value="/down/down46"/>'>免费免积分下载</a>
+   2>服务器接收请求，读取对应的文件
+		private InputStream input46;
+		set/get;
+		*在action方法中为input46赋值，使其指向目标资源。
+		*之后直接跳转type="stream"的result:
+			<result name="downok" type="stream">
+ 				<!-- 下载文件的content-type -->
+ 				<param name="contentType">text/plain</param>
+ 				<!-- 指向目标资源的输入流的名称 -->
+			    <param name="inputName">input46</param>
+			    <!-- 目标资源 传送到客户端后， 打开方式：inline：在线打开      attachment：以附件的形式保存 -->
+			    <param name="contentDisposition">attachment;filename="c46.txt"</param>
+			    <param name="bufferSize">512</param>
+ 			</result>
+============================================================================================================
+3.验证码：一张画有随机字符的图片
+  *获取随机的验证码
+  *将验证码画到图片中
+  *将图片以inline写出给客户端
+  
+  1>获取随机的码值并将码值画在图片中，并获取指向该图片的输入流
+  2>借助stream结果类型，完成验证码的写出（以inline写出给客户端）
+  
+  3>通过<img/> 将验证码图片，放置在页面的任何一个位置。
+  4>通过
+		$("img").click(function(){
+			console.log("click"+'<s:url value="/sec/sec46"/>');
+			//刷新图片
+			$(this).attr("src",'<s:url value="/sec/sec46"/>?a='+new Date().getTime());
+		});
+	刷新客户端的验证码。
+  
+  5>为能够验证用户输入的验证码是否正确，所以要在【1>】中将生成的验证码，存入session。
+============================================================================================================
+4.分页：
+  分页的调用：
+    *上一个功能完成，衔接分页查询功能。
+	*用户明确点击了【页号】的超链接。
+	
+	Action    Service    DAO
+	pageNum
+	           pageNum
+			             pageNum  pageSize
+						 分页查询
+						 List
+				List
+	List
+	
+	
+	xx.jsp
+						 
+

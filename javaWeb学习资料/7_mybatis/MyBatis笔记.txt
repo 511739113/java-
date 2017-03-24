@@ -1,0 +1,285 @@
+
+目前JDBC开发中存在的主要问题：
+1) 代码冗余过多
+2) sql语句写在JAVA源代码中，可维护性差
+3) (Object Relational Mapping 对象关系映射)
+	O <--> R  参数需要手工绑定、查询结果手工处理。
+
+一、概述
+	1、概念
+		MyBatis，是基于 JAVA语言的 一个持久化框架，可以对数据库进行操作（增删改查）。
+		
+		持久化，把数据 在内存 和 其它外部存储设备（DB/文件/网络设备） 间传输的过程。
+		框架，软件开发过程中的 半成品。
+		
+	2、功能结构
+		基本支撑层： 基本配置、连接管理、事务管理等
+		数据处理层：数据绑定、SQL解析、SQL执行、结果映射等
+		接口层： 定义数据库增删改查的接口方法
+		
+二、环境搭建
+	1、导包
+		ojdbc5.jar  mybatis-3.1.1.jar     log4j-1.2.16.jar(打印日志)
+	2、配置MyBatis的运行环境(src目录)
+		mybatis-config.xml       log4j.properties(打印日志)
+	3、核心API
+		SqlSessionFactoryBuilder: 加载 mybatis-config.xml 文件
+		SqlSessionFactory: 获取 SqlSession 对象。相当于JDBC中的JdbcUtil类。
+		SqlSession: 数据库的会话，多次数据库访问。相当于JDBC中的Connection。
+
+三、第1个MyBatis的程序（添加）
+	1、根据表结构，定义实体类
+	2、定义接口
+		public void insertAccount(Account acc);
+	3、使用Mapper映射文件(xml)，实现接口
+		<!-- 根标签，namespace指定要实现的接口类型，全限定名，包名.接口名 -->
+		<mapper namespace="day1.AccountDao">
+			<insert id="要使用的方法名" parameterType="参数类型的全限定名">
+				insert into accounts(accountno,accountname,password,balance) 
+				values(#{对象属性名},#{对象属性名},....)
+			</insert>
+		</mapper>
+		#{对象属性名}:  获取参数对象的对应属性值，给字段赋值。
+	4、把Mapper映射文件 注册到 mybatis-config.xml 中
+		<mappers>
+			<mapper resource="要注册的映射文件路径及文件名，从src后开始写，day1/xxxDaoImpl.xml"/>
+		</mappers>
+	5、测试
+		// 获取SqlSessionFactoryBuilder对象（加载mybatis-config.xml）
+		SqlSessionFactoryBuilder builder = new SqlSessionFactoryBuilder();
+		// 获取SqlSessionFactory对象（获取SqlSession）
+		Reader r = Resources.getResourceAsReader("mybatis-config.xml");//获取配置文件的流对象
+		SqlSessionFactory factory = builder.build(r);
+		// 获取SqlSession对象
+		SqlSession session = factory.openSession();
+		
+		// 获取dao对象
+		AccountDao dao = session.getMapper(AccountDao.class);
+		
+		// 调用方法
+		Account acc = new Account(11, "aa","bbbb",1.1);//测试数据
+		dao.insertAccount(acc);
+		
+		// 提交事务
+		session.commit();
+		
+		// 关闭session
+		session.close();
+		
+练习：使用MyBatis往account表中插入一条数据（表结构见accounts.sql）。
+
+四、插入数据时，使用序列，并且可以获取到主键值（卡号）
+	JDBC中的思路： 获取序列中的值
+				   使用序列产生的值，插入数据insert...
+				   把序列的值 封装到实体类对象的对应属性
+	Mybatis中的实现：
+		<insert id="insertAccount" parameterType="day1.Account">
+			<!-- 获取序列中的下一有效值 -->
+			<selectKey resultType="java.lang.Integer" keyProperty="cardId" order="BEFORE" >
+				select account_seq.nextval from dual
+			</selectKey>
+			insert into accounts values(#{cardId},#{accountName},#{password},#{balance})
+		 </insert>
+
+五、JUnit的使用（Java的单元测试工具）
+	1、添加JUnit的类库
+		项目右键-->Build Path-->Add Libraries-->选择JUnit-->选择JUnit4-->OK
+	2、使用，在test包中，创建Junit的测试类
+		普通的JAVA类，所有的方法
+			1) 必须使用 @Test (注解 annotation) 
+			2) 返回值 void
+			3) 没有参数
+
+六、查1个
+	<select id="方法名" parameterType="参数类型" resultType="返回值类型">
+		select 字段名 as cardId, accountname, password, balance 
+		from accounts 
+		where accountno=#{参数名}
+	</select>
+	注意：查询到的结果字段值，根据字段名 封装到 实体类对象的同名属性中。
+	
+七、查所有
+	<select id="方法名" resultType="集合元素的类型">
+		select 字段名 as cardId, accountname, password, balance 
+		from accounts 
+	</select>
+	注意：查询结果是多项（集合），resultType中定义的是 集合元素的全限定名。
+
+================= Day2 ==================
+
+一、删除
+	<delete id="方法名" parameterType="参数类型">
+		delete....
+	</delete>
+二、修改
+	<update id="方法名" parameterType="参数类型">
+		update....
+	</update>
+三、MyBatisUtil
+	
+四、配置MyEclipse，提示XML文件
+	window-->preferences-->搜索xml，选中"XML catalog" -->点击“add”
+		-->点击File System-->在本地选择对应的dtd文件
+		-->复制PULICID(对应的XML中第2行<!DOCTYPE...>标签中 PUBLICID 后“”中的字符串)
+		-->勾先Alternative web address前的复选框
+		-->复制其下面文本框中的内容(XML中第2行<!DOCTYPE...>标签中 最后1个“”中的字符串内容)
+		-->OK。
+五、多参操作
+	1、SQL语句中的特殊字符
+		方法一：
+			<  : &lt;
+			>  : &gt;
+		方法二：
+			<![CDATA[
+			select .....
+			]]>
+	2、使用多参绑定数据
+		1) 在接口方法中： public List<Account> selectBySplit(@Param("m1") int from,@Param("m2") int to);
+			使用(@Param("m1") int begin)   给第1个参数begin，起mybatis中的参数别名叫m1。
+		2) 在MyBatis的映射文件中： #{别名}   获取别名对应的参数值
+	
+六、业务层
+	业务方法的书写步骤：
+		1) 调用工具类，获取session
+		2) 使用session，获取dao对象
+		3) 分别调用dao的方法，实现步骤
+		4) 事务提交/回滚
+		5) 调用工具类，释放资源
+
+================= Day3 ==================
+
+一、数据库中的关系
+	1、1对1 （学生 电脑）
+		create table student(
+			stud_id number(10) primary key,
+			stud_name varchar2(20) not null
+		)
+		create table computer(
+			com_id number(10) primary key,
+			com_name varchar2(20) not null,
+			sid number(10) references student(stud_id) unique
+		)
+		学生        电脑
+		1 zs       1   DELL    2
+		2 ls       2   APPLE   1
+		
+		假设1：FK设在 学生一方，可以，但是同时必须 在FK+unique 约束。 
+		假设1：FK设在 computer一方，可以，但是同时必须 在FK+unique 约束。
+		
+		结论：1对1，则FK可以设置任意一方，但同时 必须 在FK+unique 约束。
+			通常 定义在相对更重要的一方。
+			
+	2、1对多  （班级   学生）    多对1  （学生   班级）
+		create table clazz(
+			clazz_id number(10) primary key,
+			clazz_name varchar2(20) not null
+		)
+		create table student(
+			stud_id number(10) primary key,
+			stud_name varchar2(20) not null,
+			cid number(10) references clazz(clazz_id)
+		)
+		班级           学生     
+		1 java46班    1 zs  1
+		              2 ls  1
+		
+		假设，FK设在 班级(“一”的一方)，不可以（描述1个班可以有多个学生时，违反clazz表的PK约束）；
+		假设，FK设在 学生("多"的一方)，可以。
+		
+		结论：1对多，FK 必须 在“多”的一方 设置。
+		
+	3、多对多 （学生  课程）
+		create table student(
+			stud_id number(10) primary key,
+			stud_name varchar2(20) not null
+		)
+		create table course(
+			course_id number(10) primary key,
+			course_name varchar2(20) not null,
+			sid number(10) references student(stud_id)
+		)
+		create table sc(
+			sid number(10) references student(stu_id),
+			cid number(10) references course(course_id),
+			primary key(sid, cid)   --联合PK约束
+		)
+		学生         课程                选课
+		1 zs        1 CoreJava           1  1
+		2 ls        2 oracle             1  2
+		                                 2  1
+		假设，FK设在 学生 一方，不可以（描述1个学生可以选多门课程时，违反了student表的PK约束）。
+		假设，FK设在 课程 一方，不可以（描述1门课程可以被选多个学生选择时，违反了course表的PK约束）。
+		
+		结论：多对多，在RDBMS 必须使用第3张关系表，把1个 多对多 的关系，转换为 2个 1对多 的关系。
+
+二、对象关系
+	一对多（班级 学生），在DB中，FK 必须定义 在“多”的一方。
+			
+	1、关系定义在“多”的一方 【重点】 （单向 多对1） 
+		需求：查1个学生的信息及所在班级名称。 学生 --> 1 班级
+		1) 定义“1”一方的实体类
+			同原来实体类的定义方式
+		2) 定义"多"一方的实体类
+			  DB		  实体类
+			PK字段		  主属性
+			普通字段      普通属性
+			FK字段        去掉FK，
+			              添加 关系属性，类型是 “一”一方的对象类型。
+		
+		Mapper中的映射：
+			<!-- 定义 查询结果和对象(包含关系属属性)的 映射关系 -->
+			<resultMap id="唯一标识" type="要映射成的对象全限定名">
+				<!--主属性，只有1个-->
+				<id column="PK字段名" property="对象的主属性名"/>
+				
+				<!-- 普通属性，可以有多个 -->
+				<result column="字段名" property="属性名" />
+				
+				<!-- 关系属性, 关系属性类型是“1”一方的对象类型 -->
+				<association property="关系属性的属性名" javaType="关系属性的类型">
+					<!-- 主属性，只有1个 -->
+					<id column="PK字段名" property="对象的主属性名"/>
+					
+					<!-- 普通属性，可以有多个 -->
+					<result column="字段名" property="属性名" />
+				</association>
+			</resutMap>
+			
+			<!-- 查询方法时，使用 -->
+			<select id="方法名" parameterType="参数类型" resultMap="同resultMap标签中的id值">
+				select....
+			</select>
+			
+		注意：column指定的字段名为查询结果的字段名！
+		
+	2、关系定义在“一”的一方 （单向 一对多）
+		需求：查1个班级的信息及该班的学生名单。 班级 --> N 学生
+		
+		1) 定义“多”一方的实体类
+			DB            实体类
+			PK字段       主属性
+			普通字段     普通属性
+			FK字段       去掉。
+		2) 定义“一”一方的实体类
+			 DB           实体类
+			PK字段       主属性
+			普通字段     普通属性
+			            添加关系属性，类型是 集合类型，用于存储 "多"一方的对象。
+			
+		Mapper的映射信息：
+			<!-- 定义 查询结果 和 对象(包含关系属性)的 映射关系 -->
+			<resultMap id="唯一标识" type="要映射的对象类型全限制名">
+				<id column="" property=""/>
+				<result column="" property=""/>
+				<result column="" property=""/>
+				<!-- 关系属性（班级 --> N个学生） -->
+				<collection property="关系属性的属性名" ofType="集合元素的类型">
+					<id column="" property=""/>
+					<result column="" property=""/>
+					<result column="" property=""/>
+				</collection>
+			</resultMap>
+			<select id="方法名" parameterType="参数类型" resultMap="同resultMap标签中的id值">
+				select....
+			</select>
+		

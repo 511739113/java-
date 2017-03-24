@@ -1,0 +1,240 @@
+jQuery: 基于JS的框架。
+
+一、jQuery的概述
+	JS的框架。
+	
+	1、环境搭建
+		1） 导入jquery-1.8.3.min.js  （复制到 WebRoot根 或 子目录下 ）
+		2） 在html/jsp 中，引入外部的JS文件
+			<script type="text/javascript" src="/day1/js/jquery-1.8.3.min.js"></script>
+			
+	2、第1个JQuery程序
+		// 获取页面元素  $("#p1")
+		jqObj.text();
+		jqObj.css("","")
+		     .css("","");
+			 
+	3、jQuery的好处
+		简单、直观、屏蔽浏览差异、链式调用
+		
+	4、jQuery对象 和 dom对象 的区别
+		document.getElementById("id的值")   //获取dom对象
+		$("#p1")    //获取jQuery对象
+		注意：只有jQuery的对象，才可以使用jQuery方法！！！
+	
+	5、获取jQuery对象的方法
+		1) 使用选择器    $("选择器")
+		2) 使用$(dom对象)    把dom对象转成jQuery对象
+		3) 使用$("<div id='' ....><font>....</font></div>")   直接创建并且获取jQuery对象
+		
+二、使用选择器获取jQuery对象
+	1、基本选择器
+		$("#id的值")    id选择器，根据id的值获取jq对象【重点】
+		$(".class值")   class选择器，根据class的值获取jq对象【重点】
+		$("标签名")     标签选择器，根据标签名获取jq对象
+		$("selA,selB,selC")   多路选择器【重点】
+		$("*")			匹配所有元素
+	2、层次选择器
+		$("selA selB")   后代选择器，在selA中 找到所有selB(子子孙孙) 【重点】
+		$("selA>selB")   儿子选择器，在selA中 找到所有selB(只含儿子标签)
+		$("selA+selB")   后序第1个兄弟选择器，在selA后 找其后的第1个兄弟对象selB
+		$("selA~selB")   后序所有兄弟选择器，在selA后 找其后的所有兄弟对象selB
+	3、过滤选择器
+		在一组jQuery对象 进行 过滤选择。
+		1) 基本过滤选择器
+			$("selA:first")   在selA中 找到第1个对象  【重点】
+			$("selA:last")    在selA中 找到最后1个对象  【重点】
+			$("selA:even")    在selA中 找到 下标索引是 偶数的对象 
+			$("selA:odd")     在selA中 找到 下标索引是 奇数的对象 
+			$("selA:eq(index)")     在selA中 找到 下标索引=index的对象 
+			$("selA:gt(index)")     在selA中 找到 下标索引>index的对象  【重点】
+			$("selA:lt(index)")     在selA中 找到 下标索引<index的对象 
+			$("selA:not(selB)")  在selA中 找到 不是selB 的对象 (排除selB)
+			
+		2) 内容过滤选择器
+			$("selA:contains(text)")   在selA中 找到内容是text的 对象  【重点】
+			$("selA:empty")   在selA中 找到内容是空对象（空标签对象）  【重点】
+			$("selA:has(selB)")   在selA中 找到 包含selB的 对象
+			$("selA:parent")      获取selA中是父对象(有文本或子标签)的 
+		
+		3) 可见性过滤选择器
+			$("selA:hidden")    在selA中 找到 所有隐藏的 对象
+			$("selA:visible")    在selA中 找到 所有可见的 对象
+		4) 属性过滤选择器
+			$("selA[属性名称]")   在selA中 找到 包含属性名称 的对象
+			$("selA[属性名称=value]")   在selA中 找到 属性名称=value 的对象   【重点】
+			$("selA[属性名称!=value]")   在selA中 找到 属性名称!=value 的对象(含没有该属性名的)
+		5) 表单对象属性过滤选择器
+			$("selA:enabled")   在selA中 找到 所有可用的 对象
+			$("selA:disabled")   在selA中 找到 所有不可用的 对象
+			$("selA:checked")   在selA中 找到 所有单选和复选中 被选择的 对象 【重点】
+			$("selA:selected")   在selA中 找到 所有下拉列表中 被选中的 对象 【重点】
+		6) 表单选择器
+			$("selA:text")    在selA中 找到 所有文本框对象
+			$("selA:checkbox")    在selA中 找到 所有复选框对象
+			:input
+			:text
+			:password
+			:radio
+			:checkbox
+			:submit
+			:image
+			:reset
+			:button
+			:file
+			:hidden
+
+三、遍历jQuery对象
+	jqChkArr.length属性    获取jQuery对象数组的长度
+	jqChkArr.eq(i)   根据下标i获取到jQuery对象
+		for(var i=0; i<chkArr.length; i++){
+			//console.log($(chkArr[i]));   //把dom对象转成jQuery对象
+			console.log(chkArr.eq(i));   //根据下标i获取到jQuery对象
+		}
+	
+	// jQuery遍历数组的方法 --- each方法
+	jqChkArr.each(function(i){
+		// console.log(this); //当前遍历到的对象（dom对象）
+		console.log($(this)); //把dom对象转成jQuery对象
+		console.log(chkArr.eq(i).val()); //使用eq(下标)获取当前遍历到的 jQuery对象
+	});
+	
+四、使用jQuery对象 【重点】
+	1、操作属性
+		jq对象.attr("属性名");      //获取属性值
+		      .attr("属性名","新值");   //修改属性的值
+					如，$("#userName").attr("value","hello").attr("name","uname");
+					    $("#userName").attr({"value":"hello","name":"uname"});
+			  
+			  .removeAttr("属性名");    //删除属性
+			  
+		// jQuery1.6以后，操作属性的新方法
+		jq对象.prop("属性名");
+		jq对象.prop("属性名","新值");
+	
+	2、操作样式
+		jq对象.css("样式属性名");     //获取属性值
+		      .css("样式属性名","新值");   //修改属性的值
+			  
+		jq对象.addClass("选择器名称");      // 添加class样式选择器
+			  .removeClass("选择器名称");    // 删除class样式选择器
+	
+		jq对象.hide(1000);	//隐藏， 参数可加，代表时间毫秒，指定时间内隐藏
+		jq对象.show(1000);	//显示， 参数可加，代表时间毫秒，指定时间内显示
+		
+	3、操作标签体内容
+		jq对象.text();    // 获取标签体内容    JS--- innerText("")
+		      .text("新内容");    // 修改标签体内容
+			  
+		jq对象.html();    // 获取标签体内容(支持html标签)    JS--- innerHTML("")
+		      .html("新内容");    // 修改标签体内容
+	
+	4、操作表单元素的值
+		jq对象.val();     // 获取表单元素的值
+		      .val("新值");     // 获取表单元素的值
+
+===================== Day2 ========================
+
+一、jQuery的事件处理
+	1、JS的事件处理
+		1) 标签方式
+			<input type="button" onclick="test()"/>
+		2) 给JS代码方式
+			window.onload = function(){
+				// 根据id获取btn对象
+				var btnObj = document.getElementById("btn1");
+				// 给btn对象，注册onclick事件
+				btnObj.onclick = function(){
+					alert("hello....");
+				}
+			}
+	2、jQuery的事件处理
+		jQuery对象.事件名(function(){
+			// jquery语句
+		});
+		注意，jQuery的事件名，是在原JS事件名基础上，去掉前面的on，使用同名的方法。
+		
+		// 页面加载的事件
+		$(document).ready(funtion(){
+			// 获取btn对象，并且注册click事件
+			$("#btn1").click(funtion(){
+				alert("hello...");
+			});
+		});
+		
+		// 页面加载的事件-简化版
+		$(function(){
+			// 获取btn对象，并且注册click事件
+			$("#btn1").click(funtion(){
+				alert("hello...");
+			});
+		});
+	3、复合事件
+		1) 整合单击事件，当单击动作发生时，第1次调用func1，第2次调用func2，第3次func3，第4次func1，.... 
+			toggle(func1,func2,func3);
+		2) 整合鼠标移入/移出事件，移入调用func1, 移出调用func2。
+			hover(function(){}, function(){});
+	
+二、修改页面内容
+	// 添加元素 （父子间的操作）
+	var divObj = $("<div id='' style=''><font color=red>xxx</font></div>");   //创建并获取jQuery对象
+	父对象.append(子对象);   // 在父对象的结尾添加子对象（是父对象的最后1个子对象）
+	父对象.prepend(子对象);   // 在父对象的起始添加子对象（是父对象的第1个子对象）
+	
+	
+	// 添加元素（兄弟间的操作）
+	旧对象.after(新对象);    // 在旧对象的 后面 添加新对象
+	旧对象.before(新对象);    // 在旧对象的 前面 添加新对象
+	
+	// 删除元素
+	jQuery对象.remove();      // 彻底删除当前元素，连同标签一起都删除
+	jQuery对象.empty();       // 只删除标签体内容，保留根标签
+	
+	// 关系方法
+	jQuery对象.parent();      // 父对象
+	          .children();    // 所有子对象
+			  .next();        // 下一个兄弟对象
+			  .prev();        // 前一个兄弟对象
+
+	注意：jQuery对象.事件名(function(){}) 仅适用于已存在的页面元素，对动态添加的元素无效。
+			如, $("tr:gt(0)").mouserover(function(){});
+		给所有元素（含动态添加的元素）添加事件：
+			jQuery对象.live("事件名", function(){});
+
+三、jQuery中的插件
+	1、复制 jquery-1.8.3.js 和 插件的.js .css 图片 等资源 到 WebRoot根或子目录下
+	2、引入 jquery.js 和 插件的.js .css 图片 等资源
+	3、使用
+		1) 日期插件
+			$(function(){
+				$("#birthday").datepicker({
+					dateFormat:"yy年mm月dd日"
+				});
+			});
+		2) zoom 插件
+			$(function(){
+				$("#超链接的id值").jqzoom({
+					zoomWidth:200,
+					zoomHeight:200
+				});
+			});
+		3) 表单验证插件
+			$(function(){
+				$("#form的id值").validate({
+					rules:{
+						表单元素的name值:{},
+						表单元素2的name值:{equalTo:"选择器名"}
+					}
+				});
+			});
+			
+			$(function(){
+				$("#f1").validate({
+					rules:{
+						username:{required:true,email:true,minlength:10},
+						password:{required:true,rangelength:[6,10]},
+						repassword:{required:true,equalTo:"#p1"}
+					}
+				});
+			});
+	

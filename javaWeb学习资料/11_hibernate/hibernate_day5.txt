@@ -1,0 +1,218 @@
+1.数据库连接池：dbcp  c3p0  proxool
+ 1.1 导包：
+ 1.2 在配置文件中添加配置：
+		<property name="hibernate.connection.username">hr</property>
+		<property name="hibernate.connection.password">hr</property>
+		<property name="hibernate.connection.url">jdbc:oracle:thin:@localhost:1521:xe</property>
+		<property name="hibernate.connection.driver_class">oracle.jdbc.OracleDriver</property>
+		<!-- 池中最大连接个数 -->
+		<property name="hibernate.c3p0.max_size">3</property>
+		<!-- 池中最小连接个数 -->
+		<property name="hibernate.c3p0.min_size">1</property>
+		<!-- 当连接不够用时，一次性的增加多少个 -->
+		<property name="hibernate.c3p0.acquire_increment">1</property>
+		<!-- 获取连接时，最大的等待时长毫秒 -->
+		<property name="checkoutTimeout">2000</property>
+		<!-- 告知hibernate连接池的种类 -->
+		<property name="hibernate.connection.provider_class">org.hibernate.connection.C3P0ConnectionProvider</property>
+ 1.3 使用：
+     照常使用session即可，session所需要的连接会自动向连接池索取。
+===========================================================================================
+2.对象状态：
+  2.1 临时状态：在session中不认识，且数据库中没有对应数据。
+      User user=new User(null,"c46",18);
+  2.2 持久化状态：在session中认识，且数据中有对应的数据。
+      User user2=(User)session.get(User.class,2);
+	  session.save(user);//有临时 变为 持久的。
+	  *在dirty-check中，只能检测持久化状态的对象。
+  2.3 游离(托管)状态：在session中不认识，但在数据中有对应数据。
+      tx.commit();
+	  则此时user2和user，变为游离状态。
+	  
+	  
+  Action      Service     DAO
+                tx
+							User user2=(User)session.get(User.class,2);
+				user2
+				tx.commit();
+	user2
+	
+  JSP：user2
+==========================================================================================
+3.锁
+  *增删改默认带锁。
+  *查询没有锁。
+  *更新丢失：多事务并发时，可能会导致，某个事务的更新，覆盖其他事务的更新。
+	  t_user 
+		id  name   age
+		 1  c46     18
+	  
+	  tx1:age++
+		 1>select age from t_user where id=1;
+		   age=18;
+		 3>update t_user set age=(18+1) where id=1;
+		   commit;
+		   age=19;
+	  tx2:age+2
+		 2>select age from t_user where id=1;
+		   age=18;
+		 4>update t_user set age=(18+2) where id=1;
+		   commit;
+		   age=20;
+  *对查询加锁：悲观锁
+      tx1:age++
+		 1>select age from t_user where id=1 for update;
+		   age=18;
+		 2>update t_user set age=(18+1) where id=1;
+		   commit;
+		   age=19;
+	  tx2:age+2
+		 3>select age from t_user where id=1 for update;
+           age=19;
+		 4>update t_user set age=(19+2) where id=1;
+		   commit;
+		   age=21;
+  *乐观锁：
+		t_user 
+		id  name   age  version
+		 1  c46     18    0
+		 2  c47     19    100
+	  tx1:age++
+		 1>select age,version from t_user where id=1;
+		   age=18;
+		   version=0;
+		 3>update t_user46 set age=(18+1),version=(0+1) where id=1 and version=0;
+		   commit;
+		   age=19;
+		   version=1;
+	  tx2:age+2
+		 2>select age,version from t_user where id=1;
+		   age=18;
+		   version=0;
+         4>update t_user46 set age=(18+2),version=(0+1) where id=1 and version=0;
+		   where条件不成立，无法更新。
+	  
+	  
+	  *jdbc:executeUpdate();返回更新条数，如果是0,则再次调用对应方法。
+	  *hibernate：会抛出异常，catch异常，在catch中，再次调用对应方法。
+      *hibernate中，锁的使用：
+		悲观锁：User user=(User)session1.get(User.class,149,LockOptions.UPGRADE);
+		乐观锁：
+			create table lg46(
+				id number(5) primary key,
+				name varchar2(20),
+				version number
+			)
+			*ORM：
+				@Version //告知hiberante此列为数据行的版本号
+				private Integer version;
+===========================================================================================
+4.缓存 cache
+  *频繁使用的
+  *极少改动的
+  *以{key:value}缓存在内存中。
+  *nosql=not only sql  :redis  mongoDB
+===========================================================================================
+5.hibernate缓存：ehcache  oscache  jbosscache
+===========================================================================================
+6.hibernate缓存：
+  6.1 一级缓存：将数据缓存在session中，以{ID:数据本身}.
+              : 事务级别的缓存，只能用于同一个事务中。
+			  : 默认是开启的，是必须使用的。
+			  ：【了解】
+        User user=(User)session.get(User.class,1);
+		User user2=(User)session.get(User.class,1);
+		"from User u where u.name=?";
+	  1>数据何时会进入缓存：只要hibernate操作了(查询,更新,插入)此数据，则，此数据进入缓存.
+	                     ：则同一个事务中再次使用同样的数据时，就可以从缓存中获取，减少和
+						 ：数据库的通信次数。
+	     User user=(User)session.get(User.class,1);
+		 "from User u where u.name=?";
+		 session.update(xx);
+		 session.save(xxx);
+	  2>何时可以使用缓存中的数据：以ID为条件的查询，可以检查缓存，如果缓存中有可用数据，则不
+	                           ：查询数据库。
+		  *session.get(User.class,ID);
+		  *"from User u where u.id=?"
+			Query.list()不能检查缓存
+		         .uniqueResult();不能检查缓存
+	             .iterate();可以检查缓存
+          *iterate()方法的运作流程：
+		      HQL:from User u where u.name='c46';
+		      1)保持查询条件，到数据库中查询所有符合条件的ID：
+			     select id from t_user46 where name='c46'
+		         [1,2,3]
+			  2)检查缓存，如果有可用的缓存数据，则不查询数据库。
+			    如果某个或某些ID没有缓存可用，则要发起数据库查询
+				 select * from t_user46 where id=1;
+				 select * from t_user46 where id=2;
+				 select * from t_user46 where id=3;
+				*注意：在使用iterate方法时，务必确认缓存数据，否则，如果没有缓存可用，
+				     ：会导致n+1次查询。(n：符合条件的数据行数)
+        
+  6.2 二级缓存: 将数据缓存在SessionFactory中，以{ID:数据本身}.
+              : 缓存数据全局可用，可以跨事务的。
+			  : 默认是关闭的，需要手动开启。
+			  ：hibernate中只提供了接口，需要导入外部的的第三方的实现：
+			  : ehcache  oscache  jbosscache
+              : 导入第三方的实现jar，并添加配置：
+			  ：在hibernate.cfg.xml中追加配置：
+				<!-- 开启二级缓存 -->
+				<property name="hibernate.cache.use_second_level_cache">true</property>
+				<!-- 告知hibernate 二级缓存的种类 -->
+				<property name="hibernate.cache.provider_class">org.hibernate.cache.EhCacheProvider</property>
+			  ：为进入二级缓存的实体，添加权限：
+				@Cache(usage=CacheConcurrencyStrategy.READ_ONLY)
+				public class User {
+					....
+				}
+				*注意：CacheConcurrencyStrategy.READ_ONLY 缓存的数据可以被不同的事务读取，但不能被修改
+				       CacheConcurrencyStrategy.READ_WRITE 缓存的数据可以被不同的事务读取及修改
+        
+		*何时可以进入二级缓存：只要hibernate操作了(查询,更新,插入)此数据，则，此数据进入缓存.
+	                         ：在全局的任意位置再次使用同样的数据时，就可以从缓存中获取，减少和
+						     ：数据库的通信次数。
+							 ：数据的检查流程：【一级缓存-->二级缓存-->数据库】
+		
+		
+		*何时可以使用二级缓存：以ID为条件的查询，可以检查缓存，如果缓存中有可用数据，则不
+	                         ：查询数据库
+			*session.get(User.class,ID);
+		    *"from User u where u.id=?"
+			 Query.list()不能检查缓存
+		          .uniqueResult();不能检查缓存
+	              .iterate();可以检查缓存
+          
+  6.3 查询缓存:将数据缓存在SessionFactory中，以{HQL:数据本身}.
+              : 缓存数据全局可用，可以跨事务的。
+			  : 查询缓存的声明周期不固定，当缓存数据相关的表中有任何的数据改动，则
+			    对应的缓存数据失效。
+			  : ehcache支持查询缓存。
+			  ：追加配置：
+			    <property name="hibernate.cache.use_query_cache">true</property>
+	          ：两次查询使用的HQL如果是严格一致，则只查询一次，后面的查询直接使用了
+			    之前的查询结果。
+			  ：注意：要使用查询缓存，需要在query中设置：
+				query.setCacheable(true);//本次查询要使用查询缓存
+                query.list();
+  
+              ：select u.id,u.name,u.age from User u;//查询字段
+			    from User u;//查询实体。
+			  ：查询缓存：缓存的是字段。
+			  ：细节：在HQL查询实体时，查询缓存只缓存数据的ID=={HQL:ID}
+			        ：当再次发起同样的HQL的查询时，则在查询缓存中只能找到对应的ID，
+					：此时，hibernate会转向一级缓存-->二级缓存--->数据库
+			  ：技巧：二级缓存和查询缓存配合使用．
+===========================================================================================
+拾遗：
+  基于注解的ORM：
+  位置：属性上 ，则get/set不是必需的。
+      ：get方法上
+	  :注意：@Id注解加在什么地方，则其余的注解也要同样加在什么地方。
+	         如果有注解加在和@Id不同的地方，则此注解无效。
+			 
+  
+  
+  
+  
+  

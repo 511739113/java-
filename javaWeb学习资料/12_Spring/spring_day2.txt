@@ -1,0 +1,98 @@
+1. DataSource:
+	<!-- dbcp:数据源，连接池 -->
+	<bean id="dataSource46" class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName" value="oracle.jdbc.OracleDriver"></property>
+		<property name="url" value="jdbc:oracle:thin:@localhost:1521:xe"></property>
+		<property name="username" value="hr"></property>
+		<property name="password" value="hr"></property>
+		<!-- 最大连接数 -->
+		<property name="maxActive" value="3"></property>
+		<!-- 连接池初始化时，创建的连接个数 -->
+		<property name="initialSize"  value="1"></property>
+		<!-- 最大等待时长   毫秒 -->
+		<property name="maxWait" value="2000"></property>
+	</bean>
+	<!-- c3p0:连接池 -->
+	<bean id="dataSource47" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="oracle.jdbc.OracleDriver"></property>
+		<property name="jdbcUrl" value="jdbc:oracle:thin:@localhost:1521:xe"></property>
+		<property name="user" value="hr"></property>
+		<property name="password" value="hr"></property>
+		<property name="maxPoolSize" value="3"></property>
+		<property name="initialPoolSize" value="1"></property>
+		<property name="checkoutTimeout" value="2000"></property>
+	</bean>
+===========================================================================================
+2.AnnotationSessionFactoryBean
+	<!-- SessionFactory -->
+	<bean id="sessionFactory46" class="org.springframework.orm.hibernate3.annotation.AnnotationSessionFactoryBean">
+		<!-- 连接相关 -->
+		<property name="dataSource" ref="dataSource47"></property>
+		<!-- hibernate自身属性 -->
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.dialect">org.hibernate.dialect.Oracle10gDialect</prop>
+				<prop key="hibernate.current_session_context_class">thread</prop>
+				<prop key="javax.persistence.validation.mode">none</prop>
+			</props>
+		</property>
+		<!-- 注册 映射实体 -->
+		<property name="annotatedClasses">
+			<list>
+				<value>com.c46.entity.User</value>
+			</list>
+		</property>
+	</bean>
+==========================================================================================
+3.小配置信息的分离
+  3.1 搭建独立的配置文件承载小块的配置信息。
+        url46=jdbc:oracle:thin:@localhost:1521:xe
+		driverClass46=oracle.jdbc.OracleDriver
+		username46=hr
+		password46=hr
+		maxSize46=3
+		initSize46=1
+		maxWait46=2000
+  3.2 
+	<!-- 导入外部的小块配置信息 -->
+	<context:property-placeholder location="classpath:com/c46/session_factory/db46.properties"/>
+  3.3 使用：${key}
+	<bean id="dataSource46" class="org.apache.commons.dbcp.BasicDataSource">
+		<property name="driverClassName" value="${driverClass46}"></property>
+		<property name="url" value="${url46}"></property>
+		<property name="username" value="${username46}"></property>
+		<property name="password" value="${password46}"></property>
+		<!-- 最大连接数 -->
+		<property name="maxActive" value="${maxSize46}"></property>
+		<!-- 连接池初始化时，创建的连接个数 -->
+		<property name="initialSize"  value="${initSize46}"></property>
+		<!-- 最大等待时长   毫秒 -->
+		<property name="maxWait" value="${maxWait46}"></property>
+	</bean>
+==========================================================================================
+4.spring整合mybatis：
+	<bean id="sessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource46"></property>
+		<!-- 别名 -->
+		<property name="typeAliasesPackage" value="com.c46.entity"></property>
+		<!-- 如果映射文件和接口同名，则可以省略此配置 -->
+		<property name="mapperLocations" value="classpath:com/c46/dao/*.xml"></property>
+	</bean>
+	<!-- 持有sqlsessionfactory  构建DAO的实现类。 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<!-- 扫描basePackage中的映射文件,进而创建DAO实现类，并将其纳入工厂，且dao的实现类的bean的id为对应接口名的首字母小写
+		     userDao的bean
+		 -->
+		<property name="basePackage" value="com.c46.dao"></property>
+		<!-- 告知 sqlSessionFactory 在工厂中的bean的ID -->
+		<property name="sqlSessionFactoryBeanName" value="sessionFactory"></property>
+	</bean>
+	
+	<!-- service -->
+	<bean id="userService" class="com.c46.service.UserServiceImpl">
+		<property name="ud" ref="userDao"></property>
+	</bean>
+==========================================================================================
+  

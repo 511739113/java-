@@ -1,0 +1,162 @@
+1.MVC       框架  struts2 springMVC   Controller
+  持久化    框架  mybatis hibernate   Model
+  项目管理  框架  spring  为javeEE开发提供更好的解决方案。
+============================================================================================
+2.spring ：IOC容器
+         ：搭建工厂，生产并管理项目中的所有组件(action/service/dao/tx...)。
+		 : 所有功能，都建立在工厂的支持下。
+============================================================================================
+3.spring工厂搭建过程：
+  3.1 导包 
+  3.2 配置文件：告知spring那些组件需要生产
+        *位置：任意
+		*名称：任意  applicationContext.xml  beans.xml
+		<beans xmlns="http://www.springframework.org/schema/beans"
+			   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			   xsi:schemaLocation="http://www.springframework.org/schema/beans
+								   http://www.springframework.org/schema/beans/spring-beans-3.2.xsd">
+			
+			<!-- 告知spring，需要生成如下组件 
+				 id：组件在工厂中的名字，唯一的。用户从工厂中获取对应的bean的对象。
+			-->
+			<bean id="us46" class="com.c46.service.UserServiceImpl"></bean>
+			<bean id="ud46" class="com.c46.dao.UserDAOImpl"></bean>
+		</beans>
+  3.3 启动工厂
+      ApplicationContext
+	    ClassPathXmlApplicationContext(本地)
+		  XmlWebApplicationContext(web)
+	  //启动工厂,并指定配置文件的位置，工厂会随之配置文件中的bean
+	  ApplicationContext context=new ClassPathXmlApplicationContext("com/c46/config/applicationContext.xml");
+	  //获取工厂中生产好的bean
+	  UserDAO ud=(UserDAO)context.getBean("ud46");
+	  UserService us=(UserService)context.getBean("us46");
+==========================================================================================
+4.IOC：Inverse Of Control  控制反转
+     ：反转属性的赋值权，属性的赋值由代码中，反转到配置文件中，进而满足依赖关系。
+	 ：将具有依赖关系的双方的耦合度打散，使得整个项目中组件之间既可正常协作，有关系
+	   松散，使得整个是便于维护的，是稳健的系统。
+	 ：在配置文件中为属性赋值：【依赖注入：dependency injection：DI】
+==========================================================================================
+5.DI方式：
+  5.1 set注入：借助set方法为属性赋值
+		<!-- jdk8中基本类型 + String -->
+		<property name="id" value="46"></property>
+		<property name="name" value="c46"></property>
+		<property name="gender" value="true"></property>
+		<!-- 对象类型 -->
+		<property name="ud" ref="ud47"></property>
+		<!-- 集合或数组 -->
+		<property name="list46">
+			<list>
+				<value>46</value>
+				<value>c46</value>
+				<value>true</value>
+				<ref bean="ud47"/>
+			</list>			
+		</property>
+		<!-- map -->
+		<property name="map46">
+			<map>
+				<entry key="name" value="c46"></entry>
+				<entry key="age" value="18"></entry>
+				<entry key="gender" value="true"></entry>
+				<entry key="dao" value-ref="ud46"></entry>
+			</map>
+		</property>
+		<!-- properties -->
+		<property name="props46">
+			<props>
+				<prop key="url">jdbc:oracle:xxx</prop>
+				<prop key="driverClass">oracle.jdbc.xxx</prop>
+				<prop key="username">hr</prop>
+				<prop key="password">hr</prop>
+			</props>
+		</property>
+		
+  5.2 构造注入(了解):通过构造方法为属性赋值
+		<constructor-arg index="0" type="java.lang.Integer" value="46"></constructor-arg>
+		<constructor-arg index="1" type="java.lang.String" value="c46"></constructor-arg>
+		<constructor-arg index="2" type="java.lang.Boolean" value="true"></constructor-arg>
+        *极其不灵活
+  5.3 自动注入
+       <!-- 自动注入测试
+		 byType:将工厂中和此组件属性同类型的组件注入给此组件
+		       ：如果工厂中存在多个同类的组件，则会抛出异常
+		 byName:将工厂中和此组件属性同名的组件注入给此组件
+		-->
+		<bean id="di48" class="com.c46.factory.test.DITest3" autowire="byName"></bean>
+==========================================================================================
+6.Bean的生命周期
+  *何时创建:工厂中的单例bean，会随着工厂的启动而创建。
+  
+  *何时销毁:工厂关闭时，bean销毁。
+   
+  *bean历程：构造-->set--->init-->销毁
+==========================================================================================
+7.Bean的生产原理：反射+空参构造
+                :例外：如果选用了构造注入，则选用指定的构造。
+  <bean id="xx" class="xxxx.xx.xxx.X"/>
+==========================================================================================
+8.Bean的销毁方法：（了解）
+	*<bean id="di46" class="com.c46.factory.test.DITest" destroy-method="destroy46">
+	*在类中定义一个名为destroy46 方法即可public void destroy46(){...}
+  Bean的初始化方法：(了解)
+    *<bean id="di46" class="com.c46.factory.test.DITest" init-method="init46">
+	*在类中定义一个名为destroy46 方法即可public void init46(){...}
+==========================================================================================
+9.Bean的创建模式：singleton(默认)/prototype
+                :scope="prototype/singleton"
+  *singleton:单例，无论使用多少次,都是同一个对象，spring只生产一次。
+  *prototype:非单例，每次使用，spring都会重新创建新的对象。
+  <bean id="ud47" class="com.c46.dao.UserDAOImpl" scope="singleton"></bean> 单例的bean
+  <bean id="ud47" class="com.c46.dao.UserDAOImpl" scope="prototype"></bean> 非单例的bean
+  *DAO,Service 单例
+  *Action 非单例
+  *细节：非单例的bean，不会随工厂启动而创建，而是每次使用时才创建。
+==========================================================================================
+10.复杂对象创建：创建过程复杂。
+   FactoryBean:工厂bean，生产复杂对象。
+   10.1 定制FactoryBean,在其中定制复杂对象的创建流程。
+		FactoryBean<SessionFactory>{
+			/**
+			 * 主体逻辑 用于定制复杂对象的生产流程
+			 */ 
+			@Override
+			public SessionFactory getObject() throws Exception {
+				Configuration cfg=new Configuration().configure();
+				return cfg.buildSessionFactory();
+			}
+			/**
+			 * 返回类对象
+			 */
+			@Override
+			public Class getObjectType() {
+				return SessionFactory.class;
+			}
+			/**
+			 * 设置复杂对象的创建模式：单例/非单例
+			 * return true;单例
+			 * return false;非单例
+			 */
+			@Override
+			public boolean isSingleton() {
+				return true;
+			}
+		}
+   10.2 配置：
+		<!-- 声明复杂对象 -->
+		<bean id="sessionFactory46" class="com.c46.fuzaobject.MySessionFactory"></bean>
+   10.3 使用：当从工厂中获取bean时，如果此bean是一个FactoryBean，则返回的不是该bean本身的
+              对象，而是，调用其getObject()并将返回值，交给用户。
+		SessionFactory sf=(SessionFactory)context.getBean("sessionFactory46");
+==========================================================================================
+11.spring初步整合hibernate
+   *将DAO和Service纳入工厂
+   *通过IOC满足DAO和Service之间的依赖
+   *将SessionFactory纳入工厂
+   *通过IOC满足DAO、Service对SessionFactory的依赖
+
+作业：
+  1.练习DI
+  2.初步整合。

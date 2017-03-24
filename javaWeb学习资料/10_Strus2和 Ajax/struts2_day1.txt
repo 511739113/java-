@@ -1,0 +1,215 @@
+0.MVC 开发模式  设计思想
+  M  model       业务模型层   组织业务，及业务中的数据逻辑     Service+DAO+entity
+  V  view        视图层     定制视图，将数据渲染在视图中。     JSP
+  C  controller  控制器     调度整个的MVC流程：调度Mode  选择View  Servlet
+  优点：层次划分清晰：将不同的逻辑单元划分到不同层次。
+        各司其职，责任单一。
+		开发过程中便于协作开发。
+		项目后期便于维护。
+============================================================================================================
+1.struts2  java开源mvc框架
+           框架：软件开发过程中半成品，封装通用功能，提高开发效率。
+		   mvc框架：针对Controller相关功能进行封装，提供新的controller，并在controller中封装通用功能。
+		   
+		   webwork--xwork
+		   struts1 + xwork=strus2
+============================================================================================================
+2.servlet：
+  *接收请求(收参)
+		req.getParameter("username");
+		req.getParameter("password");
+		req.getParameter("age");
+  *选择视图
+		req.getRequestDispacher("/view/c.jsp").forward(xxx,xxx);
+		res.sendRedirect("/appname/a.jsp");
+  *传递数据
+		传递手段：作用域   
+		        ：只适用于jsp(视图定制技术)
+============================================================================================================
+3.struts2搭建过程：
+  3.1 导包
+  3.2 前端控制器：拦截所有请求，使得请求进入struts2的处理流程。
+      StrutsPrepareAndExecuteFilter   /*
+	  <filter>
+		<filter-name>c46</filter-name>
+		<filter-class>org.apache.struts2.dispatcher.ng.filter.StrutsPrepareAndExecuteFilter</filter-class>
+	  </filter>
+	  <filter-mapping>
+		<filter-name>c46</filter-name>
+		<url-pattern>/*</url-pattern>
+	  </filter-mapping>
+  3.3 (后端)控制器：Action
+		extends ActionSupport{
+			/**
+			 * 等价与之前service方法，会在请求到来时，默认执行。
+			 */
+			@Override
+			public String execute(){
+				System.out.println("user action~~~");
+				return null;
+			}
+		}
+  3.4 配置Action，在struts.xml中
+      struts.xml 位置：src
+	             名称：struts.xml
+		<!-- 配置Action
+ 		 package:包：用于承载对于Action的配置信息。
+ 		                           ：配置信息以包为单位。
+ 		                           ：用于管理配置信息，使配置信息，更加清晰。
+ 		 name:包名  任意 必需属性
+ 		 extends：继承
+ 		 struts-default:是struts的系统包，包中定制了大量系统的功能。
+ 		 namespace:包内部的Action的访问前缀 
+		          :/test
+				   /test/a
+				   /test/a/b/c
+ 		 技巧：将不同模块的Action配置在不同的package中
+ 		        ：不同的package有不同的namespace
+		 -->
+		<package name="c46" extends="struts-default" namespace="/test">
+			<!-- 配置Action
+				 name:等价与url-pattern
+				 /appname/test/user
+			 -->
+			<action name="user" class="com.c46.action.UserAction"></action>	
+		</package>
+============================================================================================================
+4.响应视图
+	@Override
+	public String execute(){
+		System.out.println("user action~~~");
+		if(1==2){
+			return "ok46";//返回视图名【1】
+		}else{
+			return "error46";
+		}
+	}
+	<action name="user" class="com.c46.action.UserAction">
+		<!-- 为Action定制名为ok46的视图结果 【2】-->
+		<!-- <result name="ok46">/index.jsp</result> -->
+		<result name="ok46">/view/index.jsp</result>
+		<result name="error46">/error.jsp</result>
+	</action>	
+============================================================================================================
+5.收参：接收请求参数
+  5.1 零散收参：
+      *在Action中定制和请求参数同名的属性即可。
+	  *则请求参数会自动存入同名的Action的属性中。
+		private String username;
+		private Integer age;
+		private Date birth;
+		set/get;
+		url?username=c46&age=18&birth=2015-11-06T15:10:46
+		<form method="get/post">
+			<input type="text" name="username"/>
+			<input type="text" name="age"/>
+			<input type="text" name="birth"/>
+		</form>
+      *细节：client--->server 发送日期：
+	       ：struts2有默认可识别的日期格式：yyyy-MM-dd
+		                                yyyy-MM-ddTHH:mm:ss
+  5.2 整体收参：以实体为单位
+      class User {
+		private Integer id;
+		private String name;
+		private Date birth;
+		set/get;
+	  }
+	  class UserAction extends ActionSupport{
+		private User user46;
+		set/get;
+	  }
+	  <form method="get/post">
+			<input type="text" name="user46.id"/>
+			<input type="text" name="user46.name"/>
+			<input type="text" name="user46.birth"/>
+	  </form>
+  5.3 整体接收：以数组为单位
+	  url?hobby=football&hobby=basketball&hobby=volleyball
+	  <form method="post" action="${pageContext.request.contextPath }/test/user">
+			<input type="checkbox" name="hobby" value="football"/>ft<br/>
+			<input type="checkbox" name="hobby" value="basketball"/>bt<br/>
+			<input type="checkbox" name="hobby" value="volleyball"/>vb<br/>
+			<input type="submit" value="提交"/>
+	  </form>	
+	  class UserAction extends ActionSupport{
+		private List<String> hobby;
+		set/get;
+	  }
+  5.4 整体接收：以泛型为实体的集合为单位(了解)
+	  private List<User> users46;
+	  set/get;
+	  
+	  <form method="post" action="${pageContext.request.contextPath }/test/user">
+			<input type="text" name="users46[0].id"/>
+			<input type="text" name="users46[0].name"/>
+			<input type="text" name="users46[0].birth"/><br/>
+			
+			<input type="text" name="users46[1].id"/>
+			<input type="text" name="users46[1].name"/>
+			<input type="text" name="users46[1].birth"/><br/>
+			
+			<input type="text" name="users46[2].id"/>
+			<input type="text" name="users46[2].name"/>
+			<input type="text" name="users46[2].birth"/><br/>
+			
+			<input type="submit" value="提交"/>
+	  </form>
+============================================================================================================
+ems:
+  1.Admin  管理员  t_admin
+    *登录
+  2.employee 员工  t_employee
+    *CURD
+  3.要求配置要分包明确。
+  4.建表  dao   service   action   jsp
+    完成login
+============================================================================================================
+数据传递：Action  --->  jsp
+		HttpServletRequest req=ServletActionContext.getRequest();
+		HttpSession session=req.getSession();
+		HttpServletResponse res=ServletActionContext.getResponse();
+============================================================================================================
+细节：
+  1>ajax 和 struts交互：
+	  struts2响应ajax请求时：
+		public String execute(){
+			HttpServletResponse res=ServletActionContext.getResponse();
+			User user=xxService.xxx();
+			Gson gson=xxxxx;
+			String json=gson.toJson(user);
+			res.getWriter().print(json);
+			res.getWriter().close();
+			return null;//return null告知struts2，请求已经响应，无需处理。
+		}
+  2>Struts2的Action是非单例:每一个请求到来时，都会创建一个新的Action实例对象。
+                           :所以Action才可以利用成员变量接收请求参数以及数据传递
+    UserAction{....}  
+	req1:new UserAction();
+	req2:new UserAction();
+	req3:new UserAction();
+	...
+============================================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+==============================================================================================================
+http://olex.openlogic.com
